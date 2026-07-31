@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 import type { GayaJudul, IstilahAsing, Sapaan, VoicePair } from "@/lib/mock/persona";
 import { usePersona } from "../PersonaProvider";
 
 export function DnaPanel() {
-  const { persona, setPersona } = usePersona();
+  const { persona, setPersona, loading } = usePersona();
   const toast = useToast();
   const dna = persona.dna;
 
@@ -23,7 +24,10 @@ export function DnaPanel() {
 
   function addPillar() {
     const value = pillarInput.trim();
-    if (!value) return;
+    if (!value) {
+      toast("Isi sifat suara dulu sebelum menambah.");
+      return;
+    }
     setPersona((prev) =>
       prev.dna.pillars.includes(value)
         ? prev
@@ -65,6 +69,17 @@ export function DnaPanel() {
     setSavedTag("Tersimpan.");
     toast("DNA disimpan.");
     setTimeout(() => setSavedTag(""), 2500);
+  }
+
+  if (loading) {
+    return (
+      <div className="settings-card">
+        <div className="settings-card__title">DNA</div>
+        <SkeletonBlock className="h-3 w-2/3 mt-2" />
+        <SkeletonBlock className="h-6 w-24 mt-4 rounded-full" />
+        <SkeletonBlock className="h-20 w-full mt-4" />
+      </div>
+    );
   }
 
   return (

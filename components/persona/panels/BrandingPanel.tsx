@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import { FieldError } from "@/components/ui/FieldError";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 import type { ContentMix } from "@/lib/mock/persona";
 import { usePersona } from "../PersonaProvider";
 
@@ -12,11 +14,14 @@ const MIX_ROWS: { key: keyof ContentMix; label: string }[] = [
   { key: "hiburan", label: "Hiburan" },
 ];
 
+type BrandingErrors = { name?: string; mix?: string; frequency?: string };
+
 export function BrandingPanel() {
-  const { persona, setPersona } = usePersona();
+  const { persona, setPersona, loading } = usePersona();
   const toast = useToast();
   const [draft, setDraft] = useState(persona.branding);
   const [savedTag, setSavedTag] = useState("");
+  const [errors, setErrors] = useState<BrandingErrors>({});
 
   const mixSum = MIX_ROWS.reduce((sum, { key }) => sum + (draft.mix[key] || 0), 0);
 
@@ -24,16 +29,42 @@ export function BrandingPanel() {
     setDraft((prev) => ({ ...prev, mix: { ...prev.mix, [key]: value } }));
   }
 
+  function validate(): BrandingErrors {
+    const next: BrandingErrors = {};
+    if (!draft.name.trim()) next.name = "Isi nama brand dulu.";
+    const outOfRange = MIX_ROWS.some(({ key }) => draft.mix[key] < 0 || draft.mix[key] > 100);
+    if (outOfRange) next.mix = "Tiap persentase bauran konten harus di antara 0 dan 100.";
+    if (draft.frequency < 1 || draft.frequency > 21) {
+      next.frequency = "Frekuensi posting harus di antara 1 dan 21 kali per minggu.";
+    }
+    return next;
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     setPersona((prev) => ({ ...prev, branding: draft }));
     setSavedTag("Tersimpan.");
     toast("Branding disimpan.");
     setTimeout(() => setSavedTag(""), 2500);
   }
 
+  if (loading) {
+    return (
+      <div className="settings-card">
+        <div className="settings-card__title">Branding</div>
+        <SkeletonBlock className="h-3 w-2/3 mt-2" />
+        <SkeletonBlock className="h-10 w-full mt-4" />
+        <SkeletonBlock className="h-10 w-full mt-4" />
+        <SkeletonBlock className="h-20 w-full mt-4" />
+      </div>
+    );
+  }
+
   return (
-    <form className="settings-card" onSubmit={handleSubmit}>
+    <form className="settings-card" onSubmit={handleSubmit} noValidate>
       <div className="settings-card__title">Branding</div>
       <p className="settings-card__desc">
         Identitas dasar brand: siapa kita, janji apa yang kita pegang, batasan gaya bahasa.
@@ -45,9 +76,11 @@ export function BrandingPanel() {
           <input
             type="text"
             id="pb-name"
+            className={errors.name ? "border-magenta" : undefined}
             value={draft.name}
             onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
           />
+          <FieldError message={errors.name} />
         </div>
         <div className="field">
           <label htmlFor="pb-tagline">Tagline</label>
@@ -104,22 +137,24 @@ export function BrandingPanel() {
                 type="number"
                 min={0}
                 max={100}
-                className="qa-input mix-row__value"
+                className={`qa-input mix-row__value${errors.mix ? " border-magenta" : ""}`}
                 value={draft.mix[key]}
                 onChange={(e) => handleMixChange(key, Number.parseInt(e.target.value, 10) || 0)}
               />
             </div>
           ))}
         </div>
-        <p className="field__hint" style={mixSum !== 100 ? { color: "#D4006E" } : undefined}>
+        <p className={mixSum !== 100 ? "field__hint text-magenta" : "field__hint"}>
           {mixSum === 100 ? "Total 100% — pas." : `Total ${mixSum}%, idealnya 100%.`}
         </p>
+        <FieldError message={errors.mix} />
 
         <div className="field" style={{ maxWidth: 220 }}>
           <label htmlFor="pb-frequency">Frekuensi posting / minggu</label>
           <input
             type="number"
             id="pb-frequency"
+            className={errors.frequency ? "border-magenta" : undefined}
             min={1}
             max={21}
             value={draft.frequency}
@@ -127,6 +162,7 @@ export function BrandingPanel() {
               setDraft((p) => ({ ...p, frequency: Number.parseInt(e.target.value, 10) || 0 }))
             }
           />
+          <FieldError message={errors.frequency} />
         </div>
       </div>
 

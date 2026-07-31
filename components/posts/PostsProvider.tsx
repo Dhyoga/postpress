@@ -1,11 +1,13 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
-import { MOCK_POSTS } from "@/lib/mock/posts";
+import { useIsMockEmpty, useMockQuery } from "@/lib/hooks/use-mock-query";
+import { MOCK_POSTS, MOCK_POSTS_EMPTY } from "@/lib/mock/posts";
 import type { Post, PostStatus } from "@/lib/mock/types";
 
 type PostsContextValue = {
   posts: Post[];
+  loading: boolean;
   updateStatus: (id: string, status: PostStatus) => void;
   addPost: (post: Post) => void;
   removePost: (id: string) => void;
@@ -17,7 +19,9 @@ const PostsContext = createContext<PostsContextValue | null>(null);
 // index.html — supaya aksi approve/reject/tambah draf terasa hidup lintas halaman
 // tanpa backend. TODO: ganti ke query + mutation lib/db/queries/posts setelah Supabase siap.
 export function PostsProvider({ children }: { children: React.ReactNode }) {
-  const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
+  const isEmpty = useIsMockEmpty();
+  const { data: seedPosts, loading } = useMockQuery(isEmpty ? MOCK_POSTS_EMPTY : MOCK_POSTS);
+  const [posts, setPosts] = useState<Post[]>(seedPosts);
 
   function updateStatus(id: string, status: PostStatus) {
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
@@ -30,7 +34,7 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <PostsContext.Provider value={{ posts, updateStatus, addPost, removePost }}>
+    <PostsContext.Provider value={{ posts, loading, updateStatus, addPost, removePost }}>
       {children}
     </PostsContext.Provider>
   );

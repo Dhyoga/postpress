@@ -3,12 +3,13 @@
 import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/components/ui/Toast";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 import type { Segment } from "@/lib/mock/persona";
 import { usePersona } from "../PersonaProvider";
 import { SegmentModal } from "../SegmentModal";
 
 export function SegmentasiPanel() {
-  const { segments, setSegments } = usePersona();
+  const { segments, setSegments, loading } = usePersona();
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -105,7 +106,17 @@ export function SegmentasiPanel() {
       </p>
 
       <div className="plan-list" style={{ marginTop: 16 }}>
-        {segments.length ? (
+        {loading ? (
+          Array.from({ length: 2 }).map((_, i) => (
+            <div className="segment-card" key={i}>
+              <div className="segment-card__body">
+                <SkeletonBlock className="h-4 w-1/2" />
+                <SkeletonBlock className="h-3 w-full mt-[10px]" />
+                <SkeletonBlock className="h-3 w-2/3 mt-2" />
+              </div>
+            </div>
+          ))
+        ) : segments.length ? (
           segments.map((s) => (
             <div className="segment-card" key={s.id}>
               <div className="segment-card__body">
@@ -138,6 +149,9 @@ export function SegmentasiPanel() {
           <div className="empty">
             <strong>Belum ada segmen</strong>
             <p>Tambahkan minimal satu segmen supaya rencana konten tahu sedang menulis untuk siapa.</p>
+            <button type="button" className="btn btn--primary btn--sm" onClick={openAdd}>
+              Tambah segmen
+            </button>
           </div>
         )}
       </div>

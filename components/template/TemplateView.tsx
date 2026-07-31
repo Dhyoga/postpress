@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { usePosts } from "@/components/posts/PostsProvider";
 import { MiniSlide } from "@/components/slides/MiniSlide";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { useMockQuery } from "@/lib/hooks/use-mock-query";
 import { BLOCKS, TEMPLATES } from "@/lib/mock/templates";
 import type { TemplateId } from "@/lib/mock/types";
 import { TemplateDetailModal } from "./TemplateDetailModal";
 
 export function TemplateView() {
-  const { posts } = usePosts();
+  const { posts, loading: postsLoading } = usePosts();
+  const { data: templates, loading: templatesLoading } = useMockQuery(TEMPLATES);
   const [previewId, setPreviewId] = useState<TemplateId | null>(null);
+  const loading = postsLoading || templatesLoading;
 
   return (
     <section className="view">
@@ -34,7 +38,18 @@ export function TemplateView() {
       </div>
 
       <div className="tpl-grid">
-        {TEMPLATES.map((t) => {
+        {loading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div className="tpl-card" key={i}>
+                <SkeletonBlock className="h-[130px] w-[52px] flex-none rounded-[3px]" />
+                <div className="tpl-card__body">
+                  <SkeletonBlock className="h-4 w-32" />
+                  <SkeletonBlock className="h-3 w-full mt-[10px]" />
+                  <SkeletonBlock className="h-3 w-4/5 mt-2" />
+                </div>
+              </div>
+            ))
+          : templates.map((t) => {
           const usage = posts.filter((p) => p.template === t.id).length;
           const previewBlocks = t.blocks.slice(0, 4);
           return (

@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { useRegisterTopbarAction } from "@/components/dashboard/TopbarAction";
 import { useToast } from "@/components/ui/Toast";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { useIsMockEmpty, useMockQuery } from "@/lib/hooks/use-mock-query";
 import { formatDateId } from "@/lib/format";
-import { MOCK_PLANS } from "@/lib/mock/posts";
+import { MOCK_PLANS, MOCK_PLANS_EMPTY } from "@/lib/mock/posts";
 import type { Plan } from "@/lib/mock/types";
 import { PlanModal } from "./PlanModal";
 
 export function PlanView() {
-  const [plans, setPlans] = useState<Plan[]>(MOCK_PLANS);
+  const isEmpty = useIsMockEmpty();
+  const { data: seedPlans, loading } = useMockQuery(isEmpty ? MOCK_PLANS_EMPTY : MOCK_PLANS);
+  const [plans, setPlans] = useState<Plan[]>(seedPlans);
   const toast = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -55,7 +59,19 @@ export function PlanView() {
         </div>
       </div>
 
-      {plans.length ? (
+      {loading ? (
+        <div className="plan-list">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div className="plan-card" key={i}>
+              <SkeletonBlock className="h-4 w-[62px]" />
+              <div className="plan-card__body">
+                <SkeletonBlock className="h-4 w-2/3" />
+                <SkeletonBlock className="h-3 w-1/2 mt-[7px]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : plans.length ? (
         <div className="plan-list">
           {plans.map((p) => (
             <div className="plan-card" key={p.id}>

@@ -114,6 +114,11 @@ export const MOCK_PERSONA: PersonaState = {
   },
 };
 
+// Varian kosong, dipakai lewat ?mock=empty (lib/hooks/use-mock-query.ts) untuk melihat
+// tampilan empty state tanpa perlu menghapus data sungguhan.
+export const MOCK_SEGMENTS_EMPTY: Segment[] = [];
+export const MOCK_KEYWORDS_EMPTY: Keywords = { topik: [], hashtag: [], larangan: [], cta: [] };
+
 export const MOCK_SEGMENTS: Segment[] = [
   {
     id: "seg1",

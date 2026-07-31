@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/components/ui/Toast";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { KEYWORD_LABELS, type KeywordCategory } from "@/lib/mock/persona";
 import { usePersona } from "../PersonaProvider";
 
@@ -21,7 +22,7 @@ const KEYWORD_SHEETS: Record<string, KeywordCategory> = {
 };
 
 export function KataKunciPanel() {
-  const { keywords, setKeywords } = usePersona();
+  const { keywords, setKeywords, loading } = usePersona();
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [inputs, setInputs] = useState<Record<KeywordCategory, string>>({
@@ -33,7 +34,10 @@ export function KataKunciPanel() {
 
   function addKeyword(cat: KeywordCategory) {
     const value = inputs[cat].trim();
-    if (!value) return;
+    if (!value) {
+      toast(`Isi ${KEYWORD_LABELS[cat]} dulu sebelum menambah.`);
+      return;
+    }
     setKeywords((prev) =>
       prev[cat].includes(value) ? prev : { ...prev, [cat]: [...prev[cat], value] },
     );
@@ -109,7 +113,17 @@ export function KataKunciPanel() {
         aduk.
       </p>
 
-      {CATEGORIES.map(({ key, label, placeholder }) => (
+      {loading
+        ? CATEGORIES.map(({ key, label }) => (
+            <div className="field" key={key}>
+              <label>{label}</label>
+              <div className="tag-list">
+                <SkeletonBlock className="h-6 w-24 rounded-full" />
+                <SkeletonBlock className="h-6 w-32 rounded-full" />
+              </div>
+            </div>
+          ))
+        : CATEGORIES.map(({ key, label, placeholder }) => (
         <div className="field" key={key}>
           <label>{label}</label>
           <div className="tag-list">

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
-import { useToast } from "@/components/ui/Toast";
+import { FieldError } from "@/components/ui/FieldError";
 import type { Segment, SegmentTier } from "@/lib/mock/persona";
+
+type SegmentErrors = { name?: string };
 
 export function SegmentModal({
   open,
@@ -16,12 +18,12 @@ export function SegmentModal({
   editing: Segment | null;
   onSave: (data: Omit<Segment, "id">, id?: string) => void;
 }) {
-  const toast = useToast();
   const [name, setName] = useState("");
   const [tier, setTier] = useState<SegmentTier>("Sekunder");
   const [desc, setDesc] = useState("");
   const [painPoint, setPainPoint] = useState("");
   const [need, setNeed] = useState("");
+  const [errors, setErrors] = useState<SegmentErrors>({});
 
   useEffect(() => {
     if (!open) return;
@@ -30,14 +32,20 @@ export function SegmentModal({
     setDesc(editing?.desc ?? "");
     setPainPoint(editing?.painPoint ?? "");
     setNeed(editing?.need ?? "");
+    setErrors({});
   }, [open, editing]);
+
+  function validate(): SegmentErrors {
+    const next: SegmentErrors = {};
+    if (!name.trim()) next.name = "Isi nama segmen dulu.";
+    return next;
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!name.trim()) {
-      toast("Nama segmen wajib diisi.");
-      return;
-    }
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     onSave(
       { name: name.trim(), tier, desc: desc.trim(), painPoint: painPoint.trim(), need: need.trim() },
       editing?.id,
@@ -53,7 +61,7 @@ export function SegmentModal({
         subtitle="Satu audiens yang jadi target tulisan."
         onClose={onClose}
       />
-      <form className="modal__body" onSubmit={handleSubmit}>
+      <form className="modal__body" onSubmit={handleSubmit} noValidate>
         <div className="field__row">
           <div className="field">
             <label htmlFor="segment-name">Nama segmen</label>
@@ -61,10 +69,11 @@ export function SegmentModal({
               type="text"
               id="segment-name"
               placeholder="mis. Freelancer pemula 0-2 tahun"
-              required
+              className={errors.name ? "border-magenta" : undefined}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+            <FieldError message={errors.name} />
           </div>
           <div className="field">
             <label htmlFor="segment-tier">Prioritas</label>

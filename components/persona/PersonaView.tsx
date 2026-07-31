@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { TabBar } from "@/components/ui/TabBar";
+import { useTabQuery } from "@/lib/hooks/use-tab-query";
 import { PersonaProvider } from "./PersonaProvider";
 import { BrandingPanel } from "./panels/BrandingPanel";
 import { DnaPanel } from "./panels/DnaPanel";
@@ -18,9 +18,10 @@ const TABS = [
 ] as const;
 
 type PersonaTab = (typeof TABS)[number]["value"];
+const TAB_VALUES = TABS.map((t) => t.value) as PersonaTab[];
 
 export function PersonaView() {
-  const [tab, setTab] = useState<PersonaTab>("branding");
+  const [tab, setTab] = useTabQuery<PersonaTab>("tab", TAB_VALUES, "branding");
 
   return (
     <PersonaProvider>

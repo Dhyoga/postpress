@@ -73,8 +73,10 @@ cli/
 
 Rute di bawah `(app)/dashboard/` dan tab di dalam Persona/Antrean/Riwayat memakai
 state React biasa (client component + Context per fitur, mis. `PostsProvider`,
-`PersonaProvider`), bukan sub-route terpisah per tab — cukup untuk kebutuhan saat
-ini, tanpa perlu deep-link ke tab tertentu.
+`PersonaProvider`), bukan sub-route terpisah per tab. Tab/filter aktif tetap
+tercermin di query string (`?tab=`, `?filter=`) lewat hook `lib/hooks/use-tab-query.ts`,
+supaya link ke tab/filter tertentu bisa dibagikan dan tetap terbuka benar saat
+reload — tanpa perlu sub-route App Router terpisah per tab.
 
 ## Konvensi
 

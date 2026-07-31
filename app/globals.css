@@ -68,9 +68,19 @@
   .field__hint {
     @apply mt-[6px] text-slate text-xs;
   }
+  .field__error {
+    @apply mt-[6px] text-magenta text-xs;
+  }
 
   .alert {
     @apply mt-4 px-[13px] py-[11px] border-l-[3px] border-magenta bg-magenta/[.07] text-[#96004E] text-[13.5px];
+  }
+
+  /* ============================================================
+     SKELETON (loading state)
+     ============================================================ */
+  .skeleton {
+    @apply animate-pulse motion-reduce:animate-none bg-rule/70 rounded;
   }
 
   /* ============================================================
@@ -711,6 +721,13 @@
   }
   .tab[aria-pressed="true"] {
     @apply bg-ink text-paper border-ink;
+  }
+
+  /* Pembungkus supaya tabel bisa digeser horizontal di layar sempit alih-alih memaksa
+     seluruh layout melebar (index.html tidak punya breakpoint di bawah 640px untuk tabel,
+     jadi ini jaring pengaman, bukan desain mobile-first baru). */
+  .table-scroll {
+    @apply w-full overflow-x-auto;
   }
 
   table {

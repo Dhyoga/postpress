@@ -2,6 +2,12 @@ import type { Plan, Post } from "./types";
 
 // Data statis untuk slicing UI. TODO: ganti ke query DB via lib/db/queries/
 // (tabel content_plans & posts, lihat design.md §4) setelah Supabase siap.
+
+// Varian kosong, dipakai lewat ?mock=empty (lib/hooks/use-mock-query.ts) untuk melihat
+// tampilan empty state tanpa perlu menghapus data sungguhan.
+export const MOCK_PLANS_EMPTY: Plan[] = [];
+export const MOCK_POSTS_EMPTY: Post[] = [];
+
 export const MOCK_PLANS: Plan[] = [
   {
     id: "plan1",
