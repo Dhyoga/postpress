@@ -9,7 +9,7 @@ export const DASHBOARD_NAV = [
 ] as const;
 
 export const TOPBAR_TITLE: Record<string, string> = {
-  "/dashboard": "Jumat, 31 Juli 2026",
+  "/dashboard": "Sabtu, 1 Agustus 2026",
   "/dashboard/persona": "Persona",
   "/dashboard/plan": "Rencana konten",
   "/dashboard/queue": "Antrean",

@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import { FieldError } from "@/components/ui/FieldError";
 import { MOCK_SETTINGS, MOCK_USERS, type NotifyChannel } from "@/lib/mock/settings";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TELEGRAM_ID_RE = /^-?\d+$/;
+
+type ScheduleErrors = { window?: string };
+type NotifyErrors = { email?: string; telegram?: string };
 
 export function SettingsView() {
   const toast = useToast();
@@ -14,6 +21,7 @@ export function SettingsView() {
   );
   const [scheduleWindowEnd, setScheduleWindowEnd] = useState(MOCK_SETTINGS.scheduleWindowEnd);
   const [brandSavedTag, setBrandSavedTag] = useState("");
+  const [scheduleErrors, setScheduleErrors] = useState<ScheduleErrors>({});
 
   const [notifyChannel, setNotifyChannel] = useState<NotifyChannel>(MOCK_SETTINGS.notifyChannel);
   const [notifyEmail, setNotifyEmail] = useState(MOCK_SETTINGS.notifyEmail);
@@ -23,6 +31,7 @@ export function SettingsView() {
     MOCK_SETTINGS.notifyOnTokenExpiry,
   );
   const [notifySavedTag, setNotifySavedTag] = useState("");
+  const [notifyErrors, setNotifyErrors] = useState<NotifyErrors>({});
 
   const [users] = useState(MOCK_USERS);
 
@@ -44,11 +53,17 @@ export function SettingsView() {
   const igWarning = !ig.connected
     ? "Token akses sudah tidak valid. Publikasi otomatis berhenti sampai disambungkan ulang."
     : ig.expiresInDays <= 14
-      ? `Token akan kedaluwarsa dalam ${ig.expiresInDays} hari. Sambungkan ulang sebelum itu supaya cron publish tidak berhenti mendadak.`
+      ? `Token akan kedaluwarsa dalam ${ig.expiresInDays} hari. Sambungkan ulang sebelum itu supaya publikasi otomatis tidak berhenti mendadak.`
       : null;
 
   function handleBrandSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const nextErrors: ScheduleErrors = {};
+    if (scheduleWindowStart >= scheduleWindowEnd) {
+      nextErrors.window = "Jam mulai jendela publikasi harus lebih awal dari jam selesai.";
+    }
+    setScheduleErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     // TODO: PATCH /api/settings/schedule (design.md §11.1) setelah backend siap.
     setBrandSavedTag("Tersimpan.");
     toast("Brand voice dan jadwal disimpan.");
@@ -57,6 +72,15 @@ export function SettingsView() {
 
   function handleNotifySubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const nextErrors: NotifyErrors = {};
+    if (notifyChannel === "email" && !EMAIL_RE.test(notifyEmail.trim())) {
+      nextErrors.email = "Isi alamat email yang valid, mis. nama@domain.com.";
+    }
+    if (notifyChannel === "telegram" && !TELEGRAM_ID_RE.test(notifyTelegram.trim())) {
+      nextErrors.telegram = "Chat ID Telegram harus berupa angka, mis. 123456789.";
+    }
+    setNotifyErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     // TODO: PATCH /api/settings/notifications setelah backend siap.
     setNotifySavedTag("Tersimpan.");
     toast("Pengaturan notifikasi disimpan.");
@@ -105,10 +129,10 @@ export function SettingsView() {
           </div>
         </div>
 
-        <form className="settings-card" onSubmit={handleBrandSubmit}>
+        <form className="settings-card" onSubmit={handleBrandSubmit} noValidate>
           <div className="settings-card__title">Jadwal</div>
           <p className="settings-card__desc">
-            Kapan cron generate dan publish jalan. Brand voice sekarang diatur di{" "}
+            Kapan cron generate dan publikasi jalan. Brand voice sekarang diatur di{" "}
             <Link href="/dashboard/persona" className="text-ultra underline">
               Persona &rarr; DNA
             </Link>
@@ -133,28 +157,34 @@ export function SettingsView() {
 
           <div className="field__row">
             <div className="field">
-              <label htmlFor="settings-window-start">Jendela publish mulai</label>
+              <label htmlFor="settings-window-start">Jendela publikasi mulai</label>
               <input
                 type="time"
                 id="settings-window-start"
+                className={scheduleErrors.window ? "border-magenta" : undefined}
                 value={scheduleWindowStart}
                 onChange={(e) => setScheduleWindowStart(e.target.value)}
               />
             </div>
             <div className="field">
-              <label htmlFor="settings-window-end">Jendela publish sampai</label>
+              <label htmlFor="settings-window-end">Jendela publikasi sampai</label>
               <input
                 type="time"
                 id="settings-window-end"
+                className={scheduleErrors.window ? "border-magenta" : undefined}
                 value={scheduleWindowEnd}
                 onChange={(e) => setScheduleWindowEnd(e.target.value)}
               />
             </div>
           </div>
-          <p className="field__hint">
-            Publish hanya dijalankan di antara dua jam ini, walau post yang disetujui sudah siap
-            lebih awal.
-          </p>
+          {scheduleErrors.window ? (
+            <FieldError message={scheduleErrors.window} />
+          ) : (
+            <p className="field__hint">
+              Publikasi hanya dijalankan di antara dua jam ini, walau post yang disetujui sudah
+              siap lebih awal.
+            </p>
+          )}
 
           <div className="settings-card__foot">
             <button type="submit" className="btn btn--primary btn--sm">
@@ -191,8 +221,10 @@ export function SettingsView() {
                 id="settings-notify-email"
                 placeholder="nama@domain.com"
                 value={notifyEmail}
+                className={notifyErrors.email ? "border-magenta" : undefined}
                 onChange={(e) => setNotifyEmail(e.target.value)}
               />
+              <FieldError message={notifyErrors.email} />
             </div>
           ) : null}
 
@@ -204,8 +236,10 @@ export function SettingsView() {
                 id="settings-notify-telegram"
                 placeholder="mis. 123456789"
                 value={notifyTelegram}
+                className={notifyErrors.telegram ? "border-magenta" : undefined}
                 onChange={(e) => setNotifyTelegram(e.target.value)}
               />
+              <FieldError message={notifyErrors.telegram} />
             </div>
           ) : null}
 
@@ -241,38 +275,40 @@ export function SettingsView() {
             penggunanya sedikit. Jalankan <code>pnpm cli user:create &lt;username&gt;</code> di
             server untuk menambah orang baru.
           </p>
-          <table style={{ marginTop: 16 }}>
-            <thead>
-              <tr>
-                <th>Pengguna</th>
-                <th className="hide-sm">Peran</th>
-                <th>Login terakhir</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td className="t-topic">{u.username}</td>
-                  <td className="hide-sm t-type">{u.role}</td>
-                  <td className="t-when">{u.lastLogin}</td>
-                  <td>
-                    {u.isSelf ? (
-                      <span className="saved-tag">Ini kamu</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn--danger btn--sm"
-                        onClick={() => handleRevoke(u.id)}
-                      >
-                        Cabut sesi
-                      </button>
-                    )}
-                  </td>
+          <div className="table-scroll" style={{ marginTop: 16 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Pengguna</th>
+                  <th className="hide-sm">Peran</th>
+                  <th>Login terakhir</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td className="t-topic">{u.username}</td>
+                    <td className="hide-sm t-type">{u.role}</td>
+                    <td className="t-when">{u.lastLogin}</td>
+                    <td>
+                      {u.isSelf ? (
+                        <span className="saved-tag">Ini kamu</span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn--danger btn--sm"
+                          onClick={() => handleRevoke(u.id)}
+                        >
+                          Cabut sesi
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>

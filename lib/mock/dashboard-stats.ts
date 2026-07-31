@@ -12,7 +12,7 @@ export const DASHBOARD_STATS: DashboardStat[] = [
     label: "Cron berikutnya",
     value: "06:00",
     valueSuffix: "WIB",
-    meta: "Menyiapkan draf untuk 1 Agustus",
+    meta: "Menyiapkan draf untuk 2 Agustus",
   },
   {
     label: "Terbit minggu ini",
