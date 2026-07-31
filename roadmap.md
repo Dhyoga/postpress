@@ -26,9 +26,9 @@ Fase 6                                 ████
 
 ## Fase 0 — Fondasi (Minggu 0)
 
-- [ ] Inisialisasi repo, Next.js + TypeScript strict + Drizzle + Postgres
-- [ ] Setup lint, typecheck, vitest, CI
-- [ ] File env dan dokumentasinya
+- [x] Inisialisasi repo, Next.js + TypeScript strict + Drizzle + Postgres
+- [x] Setup lint, typecheck, vitest, CI
+- [x] File env dan dokumentasinya
 
 **Jalur Meta — kerjakan paralel:**
 
@@ -40,6 +40,8 @@ Fase 6                                 ████
 - [ ] Buat System User token di Business Manager (tidak kedaluwarsa)
 
 > Bahan App Review paling sering ditolak karena screencast tidak menunjukkan alur lengkap dari login sampai publish. Rekam ulang dengan sabar lebih murah daripada menunggu siklus review kedua.
+
+> **Blocker (agent):** enam item jalur Meta di atas butuh akun Facebook/Instagram asli, verifikasi bisnis, dan interaksi manual di Meta Business Suite/App Review — tidak bisa dikerjakan oleh coding agent tanpa akses ke kredensial dan perangkat verifikasi seseorang. Dibiarkan un-checked dengan sengaja. `META_APP_ID`/`META_APP_SECRET` di `.env` sudah ada untuk pengembangan lokal, tapi izin `instagram_content_publish` tetap harus diajukan manusia lewat App Review. Kode di Fase 4 (`lib/instagram/`) sudah ditulis dan diuji lewat `publish:dry-run` + mock, jadi begitu App Review lolos, publish sungguhan tinggal pasang token akun uji.
 
 ---
 
