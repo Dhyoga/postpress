@@ -96,7 +96,7 @@ UI dibangun dengan Tailwind. Token desain (warna, tipografi, radius, shadow, ani
 ```js
 theme: {
   extend: {
-    colors: { paper: '#EFEEE8', 'paper-hi': '#FBFAF6', ink: '#15171D',
+    colors: { paper: '#EFEEE8', 'paper-hi': '#FBFAF6', ink: '#15171D', 'ink-soft': '#1E212A',
                ultra: '#2B2AE0', magenta: '#D4006E', slate: '#6C707B', rule: '#DAD8D0' },
     fontFamily: { display: ['"Bricolage Grotesque"', 'sans-serif'],
                    body: ['"IBM Plex Sans"', 'sans-serif'],
@@ -123,7 +123,7 @@ Aturan:
 - **Komponen berulang → `@apply` di `@layer components`.** Elemen sekali pakai (layout halaman, grid unik) → utility class langsung di markup.
 - Ikuti `prefers-reduced-motion` dengan varian `motion-reduce:animate-none` pada tiap elemen yang beranimasi, bukan mengandalkan override CSS global.
 
-> **Catatan status prototipe:** `index.html` saat ini memakai Tailwind lewat **Play CDN** (`cdn.tailwindcss.com`) supaya bisa jalan sebagai file HTML tunggal tanpa build step — cocok untuk prototipe klik-klik, **tidak untuk produksi** (Tailwind sendiri memberi peringatan ini). Begitu masuk Fase 1 dan pindah ke Next.js, ganti ke Tailwind versi build (PostCSS/`@tailwindcss/postcss`) yang di-compile saat build, bukan diproses di browser.
+> **Catatan status prototipe:** `index.html` di root repo tetap memakai Tailwind lewat **Play CDN** (`cdn.tailwindcss.com`) dan sengaja dibiarkan sebagai arsip referensi visual — bukan bagian dari app Next.js yang jalan. App Next.js (`app/`) sudah pindah ke Tailwind v4 versi build (`@tailwindcss/postcss`), token warna/font dari tabel di atas didefinisikan di `tailwind.config.ts` dan dimuat lewat `@config` di `app/globals.css` (bukan `theme.extend` inline di `<script>` seperti di `index.html`). Pola `@apply` di `@layer components` untuk tombol/chip/kartu/modal sudah diekstrak 1:1 ke `app/globals.css`.
 
 ---
 

@@ -40,14 +40,25 @@ pnpm cli publish:dry-run <post-id>               # jalankan alur publish tanpa m
 ```
 app/
   (auth)/login/            halaman login
-  (app)/dashboard/         dashboard, proof sheet
+  (app)/dashboard/         shell (rail nav + topbar) di layout.tsx, lalu:
+    page.tsx                 "Hari ini" — proof sheet
+    persona/                Persona (tab branding/dna/segmentasi/visual/katakunci)
+    plan/                   Rencana konten
+    queue/                  Antrean
+    history/                Riwayat
+    template/               Template
+    settings/               Pengaturan
   api/
     auth/                  login, logout
     posts/                 CRUD, approve, reject, regenerate
     cron/                  endpoint terjadwal, dilindungi CRON_SECRET
+components/                komponen React per fitur (dashboard/, persona/, plan/,
+                           queue/, history/, template/, settings/, posts/, slides/, ui/)
 lib/
   auth/                    sesi, password, middleware
   db/                      skema drizzle, migration, query
+  mock/                    data statis dipakai UI sebelum Supabase siap — TODO
+                           tiap file menunjuk ke query lib/db/queries/ penggantinya
   llm/                     klien, prompt, skema Zod   ← Bagian B
   render/
     templates/             template Satori (satu file per template)
@@ -59,6 +70,11 @@ lib/
   jobs/                    handler tiap job terjadwal
 cli/
 ```
+
+Rute di bawah `(app)/dashboard/` dan tab di dalam Persona/Antrean/Riwayat memakai
+state React biasa (client component + Context per fitur, mis. `PostsProvider`,
+`PersonaProvider`), bukan sub-route terpisah per tab — cukup untuk kebutuhan saat
+ini, tanpa perlu deep-link ke tab tertentu.
 
 ## Konvensi
 

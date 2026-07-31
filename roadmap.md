@@ -51,15 +51,22 @@ Target: bisa login, lihat dashboard kosong yang jujur, dan Persona akun bisa dii
 - [ ] `pnpm cli user:create` dengan prompt password interaktif
 - [ ] Login: bcrypt, cookie sesi, rate limit 5 percobaan/15 menit
 - [ ] Middleware proteksi `/dashboard/*` dan `/api/*`
-- [ ] Layout dashboard sesuai `index.html`
-- [ ] Empty state: dashboard tanpa data mengarahkan ke tindakan, bukan sekadar kosong
+- [x] Layout dashboard sesuai `index.html`
+- [x] Empty state: dashboard tanpa data mengarahkan ke tindakan, bukan sekadar kosong
 - [ ] Logout dan pencabutan sesi
 - [ ] Skema `personas`, `persona_segments`, `persona_keywords`, migration
 - [ ] CRUD Persona: Branding/DNA/Visual sebagai form, Segmentasi/Kata Kunci sebagai list
 - [ ] Endpoint create/update yang sama dipakai baik dari form manual maupun hasil parse Excel (lihat `agents.md` aturan #6)
-- [ ] Import Excel client-side (SheetJS) untuk Segmentasi dan Kata Kunci, plus unduh template
+- [x] Import Excel client-side (SheetJS) untuk Segmentasi dan Kata Kunci, plus unduh template
 
 **Selesai kalau:** admin bisa buat akun lewat CLI, orang lain login, sesi bertahan setelah restart server, dan Persona akun terisi lengkap (manual atau Excel) sebelum mulai Fase 3.
+
+> Catatan: tiga item bercentang di atas baru selesai di sisi UI (slicing `index.html` ke
+> Next.js dengan mock data lokal, lihat `lib/mock/`). Form Persona (Branding/DNA/Visual)
+> dan CRUD Segmentasi/Kata Kunci sudah jadi komponen React lengkap tapi belum dicentang
+> karena datanya masih di state client, bukan tabel `personas`/`persona_segments`/
+> `persona_keywords` sungguhan — item itu baru "selesai" setelah Supabase + endpoint
+> terpasang.
 
 ---
 
