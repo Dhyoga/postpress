@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Postpress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          paper: '#EFEEE8',
+          'paper-hi': '#FBFAF6',
+          ink: '#15171D',
+          'ink-soft': '#1E212A',
+          ultra: '#2B2AE0',
+          magenta: '#D4006E',
+          slate: '#6C707B',
+          rule: '#DAD8D0',
+        },
+        fontFamily: {
+          display: ['"Bricolage Grotesque"', 'Helvetica Neue', 'sans-serif'],
+          body: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        },
+        keyframes: {
+          settle:  { '0%': { opacity: 0, transform: 'rotate(-2deg) translateY(48px)' }, '100%': { opacity: 1, transform: 'rotate(0) translateY(0)' } },
+          rise:    { '0%': { opacity: 0, transform: 'translateY(10px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+          modalIn: { '0%': { opacity: 0, transform: 'translateY(8px) scale(.98)' }, '100%': { opacity: 1, transform: 'translateY(0) scale(1)' } },
+          toastIn: { '0%': { opacity: 0, transform: 'translateY(10px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+        },
+        animation: {
+          settle:  'settle .9s cubic-bezier(.2,.8,.25,1) both',
+          rise:    'rise .5s ease both',
+          modalIn: 'modalIn .18s ease both',
+          toastIn: 'toastIn .2s ease both',
+        },
+        boxShadow: {
+          card:  '0 24px 60px rgba(0,0,0,.45)',
+          modal: '0 30px 80px rgba(0,0,0,.35)',
+          toast: '0 12px 30px rgba(0,0,0,.3)',
+        },
+      },
+    },
+  };
+</script>
+<style type="text/tailwindcss">
+@layer base{
+  [hidden]{ @apply !hidden; }
+  body{ @apply font-body bg-paper text-ink text-[15px] leading-[1.5] antialiased; }
+  :focus-visible{ @apply outline outline-2 outline-ultra outline-offset-2 rounded-[2px]; }
+}
+
+.eyebrow{ @apply font-mono text-[11px] font-medium tracking-[.14em] uppercase; }
+
+/* ============================================================
+   TOMBOL & FORM
+   ============================================================ */
+.btn{ @apply font-body text-[14px] font-semibold leading-none px-[18px] py-[12px] border border-transparent rounded bg-transparent text-inherit cursor-pointer transition-colors duration-150; }
+.btn--primary{ @apply bg-ultra text-white hover:bg-[#1F1EC4]; }
+.btn--ghost{ @apply border-rule text-ink hover:bg-[#E4E2DA]; }
+.btn--quiet{ @apply text-slate px-3 hover:text-magenta; }
+.btn--danger{ @apply text-magenta px-3 hover:underline; }
+.btn--sm{ @apply px-3 py-[7px] text-[12.5px]; }
+.btn--block{ @apply block w-full py-[14px]; }
+.btn:disabled{ @apply opacity-40 cursor-not-allowed; }
+
+.field{ @apply mt-4; }
+.field label{ @apply block mb-[7px] text-[12.5px] font-semibold; }
+.field input, .field select, .field textarea{ @apply w-full font-body text-[14.5px] px-3 py-[11px] text-ink bg-paper-hi border border-rule rounded transition-colors duration-150; }
+.field textarea{ @apply resize-y min-h-[64px] font-body; }
+.field input:focus, .field select:focus, .field textarea:focus{ @apply border-ultra outline-none; }
+.field__row{ @apply grid grid-cols-2 gap-[14px]; }
+.field__hint{ @apply mt-[6px] text-slate text-xs; }
+
+.alert{ @apply mt-4 px-[13px] py-[11px] border-l-[3px] border-magenta bg-magenta/[.07] text-[#96004E] text-[13.5px]; }
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+.auth{ @apply grid grid-cols-[1.05fr_.95fr] min-h-screen; }
+.auth__brand{ @apply relative overflow-hidden bg-ink text-paper flex flex-col; padding:44px 52px; }
+.auth__mark{ @apply text-paper opacity-55; }
+.auth__lede{ @apply mt-auto max-w-[26ch]; }
+.auth__lede h1{ @apply font-display font-extrabold leading-[1.02] tracking-[-.03em]; font-size:clamp(34px,3.6vw,50px); }
+.auth__lede p{ @apply mt-[18px] max-w-[40ch] text-[#B9BAC2] text-[15px]; }
+.auth__foot{ @apply mt-[34px] text-[#7A7D89] font-mono text-[11px] tracking-[.1em]; }
+
+.fan{ @apply absolute; top:12%; right:-70px; width:min(360px,34vw); aspect-ratio:4/5; }
+.fan__card{ @apply absolute inset-0 rounded-[5px] p-5 flex flex-col shadow-card animate-settle motion-reduce:animate-none; transform-origin:50% 100%; }
+.fan__card:nth-child(1){ @apply bg-[#2A2D36]; transform:rotate(-11deg) translateY(14px); animation-delay:.05s; }
+.fan__card:nth-child(2){ @apply bg-[#3A3E4A]; transform:rotate(-5deg) translateY(7px); animation-delay:.15s; }
+.fan__card:nth-child(3){ @apply bg-paper-hi text-ink; transform:rotate(2deg); animation-delay:.25s; }
+.fan__eyebrow{ @apply text-ultra; }
+.fan__title{ @apply mt-auto font-display font-extrabold leading-[1.03] tracking-[-.02em]; font-size:clamp(20px,2.2vw,29px); }
+.fan__sub{ @apply mt-[10px] text-xs text-slate; }
+
+.auth__panel{ @apply flex items-center justify-center; padding:44px 40px; }
+.auth__form{ @apply w-full max-w-[326px]; }
+.auth__form h2{ @apply font-display font-semibold text-[26px] tracking-[-.02em]; }
+.auth__hint{ @apply mt-2 text-slate text-[13.5px]; }
+.auth__submit{ @apply mt-[22px]; }
+.auth__note{ @apply mt-[26px] pt-[18px] border-t border-rule text-slate text-[12.5px]; }
+.auth__demo{ @apply mt-[10px] font-mono text-[11px] tracking-[.06em] text-[#9A9DA6]; }
+
+/* ============================================================
+   KERANGKA APLIKASI
+   ============================================================ */
+.app{ @apply grid min-h-screen; grid-template-columns:230px 1fr; }
+
+.rail{ @apply bg-ink text-paper flex flex-col; padding:26px 0; }
+.rail__mark{ @apply opacity-55; padding:0 22px 26px; }
+.rail__nav{ @apply flex flex-col; }
+.rail__link{ @apply flex items-center justify-between gap-[10px] text-[#A7A9B3] text-[14px] no-underline border-l-2 border-transparent bg-transparent cursor-pointer font-body text-left w-full transition-colors duration-150 hover:text-paper hover:bg-white/[.04]; padding:10px 22px; }
+.rail__link[aria-current="page"]{ @apply text-paper border-l-ultra bg-white/[.05]; }
+.rail__link--soon{ @apply text-[#5C5F69]; }
+.rail__badge{ @apply font-mono text-[10.5px] rounded-[3px] bg-magenta text-white; padding:2px 6px; }
+.rail__badge--info{ @apply bg-ultra; }
+.rail__soon-tag{ @apply font-mono text-[9.5px] text-[#5C5F69]; }
+.rail__foot{ @apply mt-auto border-t border-white/[.14] flex items-center justify-between gap-[10px]; padding:20px 22px 0; }
+.rail__who{ @apply text-[13px]; }
+.rail__who span{ @apply block text-[#7A7D89] text-[11px] font-mono; }
+.rail__out{ @apply bg-transparent border-0 cursor-pointer text-[#7A7D89] font-body text-[12.5px] hover:text-paper; }
+
+.main{ @apply flex flex-col min-w-0; }
+
+.topbar{ @apply flex items-center gap-4 border-b border-rule bg-paper; padding:18px 32px; }
+.topbar__date{ @apply font-display font-semibold text-[17px] tracking-[-.01em]; }
+.topbar__acct{ @apply ml-[6px] font-mono text-xs text-slate border border-rule rounded-[3px]; padding:4px 9px; }
+.topbar__spacer{ @apply flex-1; }
+
+.content{ @apply flex flex-col gap-9; padding:28px 32px 60px; }
+.view{ @apply flex flex-col gap-9; }
+
+/* ============================================================
+   STRIP STATUS
+   ============================================================ */
+.stats{ @apply grid grid-cols-3 border border-rule rounded-[5px] bg-paper-hi; }
+.stat{ @apply border-l border-rule first:border-l-0; padding:16px 20px; }
+.stat__label{ @apply text-slate; }
+.stat__value{ @apply mt-[9px] font-mono text-[21px] tabular-nums tracking-[-.01em]; }
+.stat__value em{ @apply not-italic text-slate text-sm; }
+.stat__meta{ @apply mt-1 text-xs text-slate; }
+
+/* ============================================================
+   PROOF SHEET
+   ============================================================ */
+.proof__head{ @apply flex items-end gap-[14px] flex-wrap mb-5; }
+.proof__label{ @apply text-slate; }
+.proof__title{ @apply mt-[5px] font-display font-extrabold tracking-[-.025em] leading-[1.08]; font-size:clamp(24px,2.4vw,31px); }
+.proof__spacer{ @apply flex-1; }
+
+.chip{ @apply font-mono text-[11px] tracking-[.06em] uppercase rounded-[3px] whitespace-nowrap inline-block; padding:5px 9px; }
+.chip--review{ @apply bg-magenta/10 text-magenta; }
+.chip--approved{ @apply bg-ultra/10 text-ultra; }
+.chip--live{ @apply bg-[#E3E1D9] text-slate; }
+.chip--failed{ @apply bg-magenta text-white; }
+.chip--draft{ @apply border border-rule text-slate; }
+
+.strip{ @apply flex gap-5 overflow-x-auto; padding:14px 4px 18px; scroll-snap-type:x mandatory; }
+.strip::-webkit-scrollbar{ height:8px; }
+.strip::-webkit-scrollbar-thumb{ @apply bg-rule rounded; }
+
+.slide{ @apply flex-none w-[172px]; scroll-snap-align:start; }
+.slide__frame{ @apply relative; padding:7px; }
+.slide__frame::before, .slide__frame::after{ @apply absolute w-[11px] h-[11px] border-rule border-solid; content:""; }
+.slide__frame::before{ @apply top-0 left-0; border-width:1px 0 0 1px; }
+.slide__frame::after{ @apply bottom-0 right-0; border-width:0 1px 1px 0; }
+.slide__canvas{ @apply aspect-[4/5] rounded-[3px] p-4 flex flex-col overflow-hidden; }
+.slide__canvas--cover{ @apply bg-ink text-paper; }
+.slide__canvas--point{ @apply bg-paper-hi text-ink border border-rule; }
+.slide__canvas--cta{ @apply bg-ultra text-white; }
+.slide__kicker{ @apply font-mono text-[9.5px] tracking-[.16em] uppercase; }
+.slide__canvas--cover .slide__kicker{ @apply text-[#8B8AF0]; }
+.slide__canvas--point .slide__kicker{ @apply text-ultra text-2xl tracking-[-.02em]; }
+.slide__canvas--cta .slide__kicker{ @apply text-[#C3C2FA]; }
+.slide__h{ @apply mt-auto font-display font-extrabold text-[16px] leading-[1.06] tracking-[-.02em]; }
+.slide__canvas--cover .slide__h{ @apply text-[19px]; }
+.slide__p{ @apply mt-2 text-[10.5px] leading-[1.35] opacity-70; }
+.slide__meta{ @apply mt-[9px] flex justify-between font-mono text-[10px] text-slate; }
+
+/* mini slide dipakai di dalam modal */
+.mini-strip{ @apply flex gap-2 overflow-x-auto; padding:2px 2px 10px; }
+.mini-slide{ @apply flex-none w-16 aspect-[4/5] rounded-[3px] p-[7px] flex flex-col; }
+.mini-slide--cover{ @apply bg-ink text-paper; }
+.mini-slide--point{ @apply bg-paper text-ink border border-rule; }
+.mini-slide--cta{ @apply bg-ultra text-white; }
+.mini-slide__k{ @apply font-mono text-[6px] tracking-[.1em] uppercase opacity-70; }
+.mini-slide__h{ @apply mt-auto font-display font-extrabold text-[8px] leading-[1.1]; }
+
+.proof__body{ @apply grid gap-8 items-start pt-[22px] border-t border-rule; grid-template-columns:1fr 268px; }
+.caption{ @apply text-[14px] max-w-[62ch] whitespace-pre-line; }
+.caption__tags{ @apply mt-[14px] text-ultra text-[13px] leading-[1.7]; }
+.proof__side{ @apply flex flex-col gap-[10px]; }
+.proof__spec{ @apply font-mono text-[11px] text-slate leading-[1.9] pb-[6px]; }
+.proof__spec b{ @apply text-ink font-medium; }
+
+/* ============================================================
+   PANEL / DAFTAR (Rencana konten)
+   ============================================================ */
+.panel-head{ @apply flex items-baseline justify-between gap-[14px] flex-wrap; }
+.panel-head h1{ @apply font-display font-bold text-[22px] tracking-[-.02em]; }
+.panel-head p{ @apply mt-[5px] text-slate text-[13.5px]; }
+
+.plan-list{ @apply flex flex-col gap-[10px]; }
+.plan-card{ @apply flex items-center gap-[18px] bg-paper-hi border border-rule rounded-[5px]; padding:16px 18px; }
+.plan-card__date{ @apply font-mono text-[12.5px] text-slate w-[78px] flex-shrink-0; }
+.plan-card__body{ @apply flex-1 min-w-0; }
+.plan-card__topic{ @apply font-semibold text-[14.5px]; }
+.plan-card__angle{ @apply mt-[3px] text-slate text-[12.5px]; }
+.plan-card__badges{ @apply flex gap-[6px] mt-2; }
+.badge{ @apply font-mono text-[10px] tracking-[.05em] uppercase text-slate border border-rule rounded-[3px]; padding:2px 7px; }
+.plan-card__actions{ @apply flex gap-[6px] flex-shrink-0; }
+
+.empty{ @apply text-center border border-dashed border-rule rounded-[5px] text-slate; padding:44px 24px; }
+.empty p{ @apply text-[13.5px] max-w-[38ch] mx-auto; margin:6px auto 16px; }
+.empty strong{ @apply block text-ink font-display text-[17px] font-bold; }
+
+/* ============================================================
+   TEMPLATE
+   ============================================================ */
+.tpl-grid{ @apply grid grid-cols-2 gap-[18px]; }
+.tpl-card{ @apply flex gap-[18px] bg-paper-hi border border-rule rounded-[6px]; padding:20px; }
+.tpl-card__preview{ @apply flex-none flex; }
+.tpl-card__preview .mini-slide{ @apply w-[52px] rounded-[3px]; margin-right:-22px; box-shadow:0 6px 16px rgba(0,0,0,.18); }
+.tpl-card__preview .mini-slide:last-child{ @apply mr-0; }
+.tpl-card__body{ @apply flex-1 min-w-0; }
+.tpl-card__head{ @apply flex items-baseline gap-[9px] flex-wrap; }
+.tpl-card__name{ @apply font-display font-bold text-[16.5px] tracking-[-.01em]; }
+.tpl-card__id{ @apply font-mono text-[10.5px] text-slate; }
+.tpl-card__desc{ @apply mt-[6px] text-slate text-[13px] leading-[1.5]; }
+.tpl-card__meta{ @apply mt-[10px] flex gap-[6px] flex-wrap items-center; }
+.tpl-card__usage{ @apply font-mono text-[11px] text-slate; }
+
+.tpl-specs{ @apply mt-[14px] border-t border-rule pt-3; }
+.tpl-spec-row{ @apply flex gap-[10px] text-xs; padding:4px 0; }
+.tpl-spec-row__block{ @apply font-mono text-ultra w-[52px] flex-shrink-0; }
+.tpl-spec-row__fields{ @apply text-slate flex-1; }
+.tpl-spec-row__fields b{ @apply text-ink font-medium; }
+
+.tpl-card__actions{ @apply mt-[14px]; }
+
+.tpl-note{ @apply flex gap-3 bg-ultra/[.06] border border-ultra/[.18] rounded-[5px] text-[13px] text-ink-soft; padding:16px 18px; }
+.tpl-note b{ @apply font-semibold; }
+
+@media (max-width:760px){
+  .tpl-grid{ @apply grid-cols-1; }
+  .tpl-card{ @apply flex-col; }
+}
+
+/* ============================================================
+   PENGATURAN
+   ============================================================ */
+.settings-grid{ @apply flex flex-col gap-5 max-w-[640px]; }
+.settings-card{ @apply bg-paper-hi border border-rule rounded-[6px]; padding:22px 24px; }
+.settings-card__title{ @apply font-display font-bold text-[16.5px] tracking-[-.01em]; }
+.settings-card__desc{ @apply mt-1 text-slate text-[13px] leading-[1.5]; }
+.settings-card__foot{ @apply mt-5 flex items-center gap-3; }
+
+.status-row{ @apply flex items-start justify-between gap-4 flex-wrap; }
+.status-row__label{ @apply font-medium text-[14.5px]; }
+.status-row__meta{ @apply mt-1 text-slate text-[12.5px] font-mono; }
+
+.check-row{ @apply flex items-center gap-[10px] text-[13.5px] mt-3; }
+.check-row input[type="checkbox"]{ @apply w-4 h-4 accent-ultra; }
+
+.saved-tag{ @apply font-mono text-[11px] text-slate; }
+
+/* ============================================================
+   PERSONA
+   ============================================================ */
+.qa-input{ @apply font-body text-[13.5px] px-3 py-[9px] text-ink bg-paper border border-rule rounded transition-colors duration-150; }
+.qa-input:focus{ @apply border-ultra outline-none; }
+.quick-add{ @apply flex gap-[8px] mt-3; }
+.quick-add .qa-input{ @apply flex-1; }
+
+.tag-list{ @apply flex flex-wrap gap-[8px]; }
+.chip-tag{ @apply inline-flex items-center gap-[7px] bg-paper border border-rule rounded-full text-[12.5px] text-ink; padding:5px 8px 5px 13px; }
+.chip-tag button{ @apply text-slate hover:text-magenta bg-transparent border-0 cursor-pointer text-[15px] leading-none; }
+
+.dnd-pair{ @apply grid grid-cols-2 gap-3 bg-paper border border-rule rounded-[5px] mb-3; padding:14px; }
+.dnd-pair__label{ @apply text-[10.5px] font-mono uppercase tracking-[.08em] mb-[6px] block; }
+.dnd-pair__label--do{ @apply text-ultra; }
+.dnd-pair__label--dont{ @apply text-magenta; }
+.dnd-pair__remove{ @apply col-span-2; }
+
+.mix-row{ @apply flex items-center gap-3 py-[7px]; }
+.mix-row__label{ @apply w-[92px] flex-shrink-0 text-[13.5px]; }
+.mix-row__bar-wrap{ @apply flex-1 h-2 bg-rule/40 rounded-full overflow-hidden; }
+.mix-row__bar{ @apply h-full bg-ultra; }
+.mix-row__value{ @apply w-[56px] flex-shrink-0; }
+
+.color-row{ @apply flex items-center gap-[14px] border-b border-rule last:border-b-0; padding:10px 0; }
+.color-row__swatch{ @apply w-9 h-9 rounded-[6px] border border-rule cursor-pointer p-0 flex-shrink-0; }
+.color-row__label{ @apply w-[92px] flex-shrink-0 font-medium text-[13.5px]; }
+.color-row__hex{ @apply w-[100px] flex-shrink-0; }
+
+.segment-card{ @apply flex items-start gap-[16px] bg-paper-hi border border-rule rounded-[5px]; padding:16px 18px; }
+.segment-card__body{ @apply flex-1 min-w-0; }
+.segment-card__name{ @apply font-semibold text-[14.5px]; }
+.segment-card__meta{ @apply mt-[6px] text-slate text-[12.5px] leading-[1.6]; }
+.segment-card__actions{ @apply flex gap-[6px] flex-shrink-0; }
+
+.excel-actions{ @apply flex items-center gap-[10px] flex-wrap mt-4 pt-4 border-t border-rule; }
+.excel-actions input[type="file"]{ @apply text-[12.5px] text-slate; }
+
+.persona-sub{ @apply mt-6 pt-5 border-t border-rule; }
+.persona-sub__title{ @apply font-display font-bold text-[14.5px] tracking-[-.01em]; }
+.persona-sub__desc{ @apply mt-1 text-slate text-[12.5px]; }
+
+/* ============================================================
+   TABEL (Antrean / Riwayat)
+   ============================================================ */
+.tabs{ @apply flex gap-[6px] flex-wrap; }
+.tab{ @apply font-mono text-[11.5px] tracking-[.03em] rounded-[3px] border border-rule bg-transparent text-slate cursor-pointer hover:text-ink; padding:7px 12px; }
+.tab[aria-pressed="true"]{ @apply bg-ink text-paper border-ink; }
+
+table{ @apply w-full border-collapse; }
+th{ @apply text-left font-mono text-[10.5px] font-medium tracking-[.13em] uppercase text-slate border-b border-rule; padding:0 14px 9px 0; }
+td{ @apply border-b border-rule text-[14px] align-middle; padding:13px 14px 13px 0; }
+tr.is-clickable{ @apply cursor-pointer; }
+tr.is-clickable:hover td{ @apply bg-white/50; }
+.t-when{ @apply font-mono text-[12.5px] text-slate whitespace-nowrap; }
+.t-type{ @apply font-mono text-[11px] text-slate; }
+.t-topic{ @apply font-medium; }
+.t-err{ @apply block mt-[3px] text-xs text-magenta font-normal; }
+td:last-child, th:last-child{ @apply text-right pr-0; }
+
+/* ============================================================
+   MODAL & TOAST
+   ============================================================ */
+.modal-backdrop{ @apply fixed inset-0 bg-ink/[.55] flex items-start justify-center z-50 overflow-y-auto; padding:6vh 24px; }
+.modal{ @apply bg-paper-hi rounded-[6px] max-w-[560px] w-full shadow-modal animate-modalIn motion-reduce:animate-none; padding:28px; }
+.modal__head{ @apply flex items-start justify-between gap-4; }
+.modal__title{ @apply font-display font-bold text-[20px] tracking-[-.02em]; }
+.modal__sub{ @apply text-slate text-[13px] mt-1; }
+.modal__close{ @apply bg-transparent border-0 cursor-pointer text-slate text-[22px] leading-none flex-shrink-0 hover:text-ink; padding:2px 4px; }
+.modal__body{ @apply mt-[18px]; }
+.modal__foot{ @apply mt-[22px] flex gap-[10px] flex-wrap; }
+
+.timeline{ @apply flex flex-col mt-[6px]; }
+.timeline__row{ @apply flex items-center gap-3 border-b border-rule last:border-b-0; padding:9px 0; }
+.timeline__phase{ @apply font-mono text-[12.5px] w-[82px] flex-shrink-0; }
+.timeline__time{ @apply font-mono text-[11.5px] text-slate w-[70px] flex-shrink-0; }
+.timeline__detail{ @apply text-[12.5px] text-slate flex-1; }
+
+.toast{ @apply fixed bottom-[22px] right-[22px] bg-ink text-paper rounded-[5px] text-[13.5px] shadow-toast z-[60] animate-toastIn motion-reduce:animate-none; padding:13px 18px; }
+
+/* ============================================================
+   RESPONSIF
+   ============================================================ */
+@media (max-width:1080px){ .proof__body{ @apply grid-cols-1 gap-6; } }
+@media (max-width:900px){
+  .auth{ @apply grid-cols-1; }
+  .auth__brand{ padding:28px 24px 32px; }
+  .auth__lede{ @apply mt-[26px]; }
+  .auth__lede h1{ @apply text-[30px]; }
+  .fan{ @apply hidden; }
+  .auth__panel{ padding:34px 24px 52px; }
+  .app{ @apply grid-cols-1; }
+  .rail{ @apply flex-row items-center gap-1 overflow-x-auto; padding:10px 16px; }
+  .rail__mark{ padding:0 14px 0 0; }
+  .rail__nav{ @apply flex-row; }
+  .rail__link{ @apply border-l-0 border-b-2 border-transparent whitespace-nowrap w-auto; padding:8px 12px; }
+  .rail__link[aria-current="page"]{ @apply border-l-transparent border-b-ultra; }
+  .rail__foot{ @apply mt-0 ml-auto border-t-0 border-l border-white/[.14]; padding:0 0 0 14px; }
+  .rail__who{ @apply hidden; }
+  .topbar{ @apply flex-wrap; padding:14px 20px; }
+  .content{ padding:22px 20px 48px; }
+  .field__row{ @apply grid-cols-1; }
+}
+@media (max-width:640px){
+  .stats{ @apply grid-cols-1; }
+  .stat{ @apply border-l-0 border-t border-rule first:border-t-0; }
+  .hide-sm{ @apply hidden; }
+  .plan-card{ @apply flex-wrap; }
+}
+@media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HALAMAN MASUK
+     ============================================================ -->
+<div class="auth" id="view-login">
+  <aside class="auth__brand">
+    <div class="auth__mark eyebrow">Postpress</div>
+    <div class="fan" aria-hidden="true">
+      <div class="fan__card"></div>
+      <div class="fan__card"></div>
+      <div class="fan__card">
+        <div class="fan__eyebrow eyebrow">Panduan</div>
+        <div class="fan__title">5 kesalahan freelancer pemula</div>
+        <div class="fan__sub">Yang bikin kamu kerja keras tapi tetap kere</div>
+      </div>
+    </div>
+    <div class="auth__lede">
+      <h1>Satu proof sheet tiap pagi. Kamu tinggal bilang ya.</h1>
+      <p>Postpress menyusun rencana konten, menulis tiap slide, dan merender carousel siap tayang. Yang tersisa buat kamu cuma satu tombol.</p>
+    </div>
+    <div class="auth__foot">1080 &times; 1350 &middot; 4:5 &middot; JPEG</div>
+  </aside>
+
+  <main class="auth__panel">
+    <form class="auth__form" id="login-form" novalidate>
+      <h2>Masuk</h2>
+      <p class="auth__hint">Lanjutkan ke akun @kelasfreelance.id.</p>
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password">
+      </div>
+      <p class="alert" id="login-error" role="alert" hidden>Isi username dan password dulu.</p>
+      <div class="auth__submit">
+        <button type="submit" class="btn btn--primary btn--block">Masuk</button>
+      </div>
+      <p class="auth__note">Akun dibuat oleh admin. Belum punya akses? Minta admin membuatkan.</p>
+      <p class="auth__demo">Prototipe &mdash; isi apa saja untuk melihat dashboard.</p>
+    </form>
+  </main>
+</div>
+
+<!-- ============================================================
+     DASHBOARD
+     ============================================================ -->
+<div class="app" id="view-app" hidden>
+  <aside class="rail">
+    <div class="rail__mark eyebrow">Postpress</div>
+    <nav class="rail__nav" id="rail-nav">
+      <button class="rail__link" data-view="today" aria-current="page">Hari ini <span class="rail__badge" id="badge-today">1</span></button>
+      <button class="rail__link" data-view="persona">Persona</button>
+      <button class="rail__link" data-view="plan">Rencana konten</button>
+      <button class="rail__link" data-view="queue">Antrean <span class="rail__badge rail__badge--info" id="badge-queue">3</span></button>
+      <button class="rail__link" data-view="history">Riwayat</button>
+      <button class="rail__link" data-view="template">Template</button>
+      <button class="rail__link" data-view="settings">Pengaturan</button>
+    </nav>
+    <div class="rail__foot">
+      <div class="rail__who">Rangga<span>admin</span></div>
+      <button class="rail__out" id="logout">Keluar</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar__date" id="topbar-title">Jumat, 31 Juli 2026</div>
+      <div class="topbar__acct">@kelasfreelance.id</div>
+      <div class="topbar__spacer"></div>
+      <button class="btn btn--ghost" id="topbar-action">Buat post baru</button>
+    </header>
+
+    <div class="content">
+
+      <!-- ===================== HARI INI ===================== -->
+      <section class="view" id="view-today">
+        <section class="stats">
+          <div class="stat">
+            <div class="stat__label eyebrow">Cron berikutnya</div>
+            <div class="stat__value">06:00 <em>WIB</em></div>
+            <div class="stat__meta">Menyiapkan draf untuk 1 Agustus</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label eyebrow">Terbit minggu ini</div>
+            <div class="stat__value">5 <em>/ 7</em></div>
+            <div class="stat__meta">1 gagal, 1 menunggu review</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label eyebrow">Sisa kuota publikasi</div>
+            <div class="stat__value">23 <em>/ 25</em></div>
+            <div class="stat__meta">Reset bergulir tiap 24 jam</div>
+          </div>
+        </section>
+
+        <section class="proof">
+          <div class="proof__head">
+            <div>
+              <div class="proof__label eyebrow">Proof sheet &middot; Sabtu 1 Agustus</div>
+              <h1 class="proof__title">5 kesalahan freelancer pemula</h1>
+            </div>
+            <div class="proof__spacer"></div>
+            <span class="chip chip--review" id="today-chip">Menunggu review</span>
+          </div>
+
+          <div class="strip" tabindex="0" role="group" aria-label="Pratinjau slide, geser untuk melihat semua">
+            <figure class="slide"><div class="slide__frame"><div class="slide__canvas slide__canvas--cover">
+              <div class="slide__kicker">Panduan</div><div class="slide__h">5 kesalahan freelancer pemula</div>
+              <div class="slide__p">Yang bikin kamu kerja keras tapi tetap kere</div>
+            </div></div><figcaption class="slide__meta"><span>01 / 07</span><span>cover</span></figcaption></figure>
+            <figure class="slide"><div class="slide__frame"><div class="slide__canvas slide__canvas--point">
+              <div class="slide__kicker">01</div><div class="slide__h">Pasang harga dari rasa takut</div>
+              <div class="slide__p">Kamu banting harga karena takut ditolak. Klien yang datang justru paling banyak menuntut.</div>
+            </div></div><figcaption class="slide__meta"><span>02 / 07</span><span>point</span></figcaption></figure>
+            <figure class="slide"><div class="slide__frame"><div class="slide__canvas slide__canvas--point">
+              <div class="slide__kicker">02</div><div class="slide__h">Kerja tanpa kontrak</div>
+              <div class="slide__p">Chat WhatsApp bukan kesepakatan. Satu halaman scope dan termin sudah cukup melindungi.</div>
+            </div></div><figcaption class="slide__meta"><span>03 / 07</span><span>point</span></figcaption></figure>
+            <figure class="slide"><div class="slide__frame"><div class="slide__canvas slide__canvas--point">
+              <div class="slide__kicker">03</div><div class="slide__h">Tidak minta uang muka</div>
+              <div class="slide__p">DP 50% menyaring klien yang tidak serius sebelum kamu buang waktu sebulan.</div>
+            </div></div><figcaption class="slide__meta"><span>04 / 07</span><span>point</span></figcaption></figure>
+            <figure class="slide"><div class="slide__frame"><div class="slide__canvas slide__canvas--point">
+              <div class="slide__kicker">04</div><div class="slide__h">Terima revisi tanpa batas</div>
+              <div class="slide__p">Tulis jumlah revisi di penawaran. Selebihnya dihitung sebagai pekerjaan baru.</div>
+            </div></div><figcaption class="slide__meta"><span>05 / 07</span><span>point</span></figcaption></figure>
+            <figure class="slide"><div class="slide__frame"><div class="slide__canvas slide__canvas--point">
+              <div class="slide__kicker">05</div><div class="slide__h">Lupa menghitung pajak</div>
+              <div class="slide__p">Penghasilan kotor bukan penghasilan kamu. Sisihkan sejak invoice pertama cair.</div>
+            </div></div><figcaption class="slide__meta"><span>06 / 07</span><span>point</span></figcaption></figure>
+            <figure class="slide"><div class="slide__frame"><div class="slide__canvas slide__canvas--cta">
+              <div class="slide__kicker">Simpan buat nanti</div><div class="slide__h">Mana yang paling sering kamu lakukan?</div>
+              <div class="slide__p">@kelasfreelance.id</div>
+            </div></div><figcaption class="slide__meta"><span>07 / 07</span><span>cta</span></figcaption></figure>
+          </div>
+
+          <div class="proof__body">
+            <div>
+              <p class="caption">Lima hal ini kelihatan sepele waktu baru mulai, tapi efeknya menumpuk sampai bertahun-tahun kemudian.
+
+Yang nomor 3 paling sering diabaikan: banyak freelancer baru merasa tidak enak minta uang muka, padahal justru itu yang menyaring klien serius.
+
+Kalau kamu baru mulai tahun ini, simpan dulu. Nanti kepakai.</p>
+              <p class="caption__tags">#freelanceindonesia #freelancerpemula #kerjaremote #tipsfreelance #ratecard #keuanganfreelancer</p>
+            </div>
+            <div class="proof__side">
+              <div class="proof__spec">
+                Template &nbsp; <b>cover_list</b><br>
+                Kanvas &nbsp;&nbsp;&nbsp; <b>1080 &times; 1350</b><br>
+                Slide &nbsp;&nbsp;&nbsp;&nbsp; <b>7</b><br>
+                Tayang &nbsp;&nbsp;&nbsp; <b>1 Agu, 19:00 WIB</b>
+              </div>
+              <button class="btn btn--primary" onclick="approvePost('post1')">Setujui &amp; jadwalkan</button>
+              <button class="btn btn--ghost" onclick="regeneratePost('post1')">Buat ulang</button>
+              <button class="btn btn--quiet" onclick="rejectPost('post1')">Tolak draf ini</button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="panel-head" style="margin-bottom:14px;">
+            <h1 style="font-size:19px;">Berikutnya di antrean</h1>
+            <button class="btn btn--quiet btn--sm" onclick="switchView('queue')">Lihat semua &rarr;</button>
+          </div>
+          <table>
+            <thead><tr><th>Jadwal</th><th class="hide-sm">Jenis</th><th>Topik</th><th>Status</th></tr></thead>
+            <tbody id="today-preview-body"></tbody>
+          </table>
+        </section>
+      </section>
+
+      <!-- ===================== PERSONA ===================== -->
+      <section class="view" id="view-persona" hidden>
+        <div class="panel-head">
+          <div>
+            <h1>Persona</h1>
+            <p>Profil brand yang jadi acuan gaya, target, dan batasan konten. Diisi manual atau diimpor dari Excel &mdash; belum dihubungkan ke AI.</p>
+          </div>
+        </div>
+
+        <div class="tabs" id="persona-tabs">
+          <button class="tab" data-ptab="branding" aria-pressed="true">Branding</button>
+          <button class="tab" data-ptab="dna" aria-pressed="false">DNA</button>
+          <button class="tab" data-ptab="segmentasi" aria-pressed="false">Segmentasi</button>
+          <button class="tab" data-ptab="visual" aria-pressed="false">Visual</button>
+          <button class="tab" data-ptab="katakunci" aria-pressed="false">Kata Kunci</button>
+        </div>
+
+        <!-- ---------- BRANDING ---------- -->
+        <form class="settings-card" id="ptab-branding" data-ptab-panel>
+          <div class="settings-card__title">Branding</div>
+          <p class="settings-card__desc">Identitas dasar brand: siapa kita, janji apa yang kita pegang, batasan gaya bahasa.</p>
+
+          <div class="field__row">
+            <div class="field">
+              <label for="pb-name">Nama brand</label>
+              <input type="text" id="pb-name">
+            </div>
+            <div class="field">
+              <label for="pb-tagline">Tagline</label>
+              <input type="text" id="pb-tagline">
+            </div>
+          </div>
+          <div class="field">
+            <label for="pb-positioning">Positioning</label>
+            <textarea id="pb-positioning" placeholder="Kami bantu X melakukan Y dengan Z"></textarea>
+          </div>
+          <div class="field__row">
+            <div class="field">
+              <label for="pb-dos">Selalu lakukan</label>
+              <textarea id="pb-dos"></textarea>
+            </div>
+            <div class="field">
+              <label for="pb-donts">Hindari</label>
+              <textarea id="pb-donts"></textarea>
+            </div>
+          </div>
+
+          <div class="persona-sub">
+            <div class="persona-sub__title">Bauran &amp; ritme konten</div>
+            <p class="persona-sub__desc">Kompas acuan supaya rencana konten harian tidak melenceng. Total idealnya 100%.</p>
+
+            <div style="margin-top:14px;">
+              <div class="mix-row">
+                <span class="mix-row__label">Edukasi</span>
+                <div class="mix-row__bar-wrap"><div class="mix-row__bar" id="mix-bar-edukasi"></div></div>
+                <input type="number" min="0" max="100" id="mix-edukasi" class="qa-input mix-row__value" oninput="updateMix()">
+              </div>
+              <div class="mix-row">
+                <span class="mix-row__label">Studi kasus</span>
+                <div class="mix-row__bar-wrap"><div class="mix-row__bar" id="mix-bar-studiKasus"></div></div>
+                <input type="number" min="0" max="100" id="mix-studiKasus" class="qa-input mix-row__value" oninput="updateMix()">
+              </div>
+              <div class="mix-row">
+                <span class="mix-row__label">Promosi</span>
+                <div class="mix-row__bar-wrap"><div class="mix-row__bar" id="mix-bar-promosi"></div></div>
+                <input type="number" min="0" max="100" id="mix-promosi" class="qa-input mix-row__value" oninput="updateMix()">
+              </div>
+              <div class="mix-row">
+                <span class="mix-row__label">Hiburan</span>
+                <div class="mix-row__bar-wrap"><div class="mix-row__bar" id="mix-bar-hiburan"></div></div>
+                <input type="number" min="0" max="100" id="mix-hiburan" class="qa-input mix-row__value" oninput="updateMix()">
+              </div>
+            </div>
+            <p class="field__hint" id="mix-sum-note"></p>
+
+            <div class="field" style="max-width:220px;">
+              <label for="pb-frequency">Frekuensi posting / minggu</label>
+              <input type="number" id="pb-frequency" min="1" max="21">
+            </div>
+          </div>
+
+          <div class="settings-card__foot">
+            <button type="submit" class="btn btn--primary btn--sm">Simpan</button>
+            <span class="saved-tag" id="branding-saved-tag"></span>
+          </div>
+        </form>
+
+        <!-- ---------- DNA ---------- -->
+        <form class="settings-card" id="ptab-dna" data-ptab-panel hidden>
+          <div class="settings-card__title">DNA</div>
+          <p class="settings-card__desc">Kepribadian suara brand. Contoh berpasangan lebih berguna daripada kata sifat sendirian.</p>
+
+          <div class="field">
+            <label>Sifat suara</label>
+            <div class="tag-list" id="dna-pillars-list"></div>
+            <div class="quick-add">
+              <input type="text" id="dna-pillar-input" class="qa-input" placeholder="mis. Blak-blakan">
+              <button type="button" class="btn btn--ghost btn--sm" onclick="addPillar()">Tambah</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Contoh gaya bicara</label>
+            <div id="dna-pairs-list"></div>
+            <button type="button" class="btn btn--ghost btn--sm" onclick="addPair()">+ Tambah contoh</button>
+          </div>
+
+          <div class="field">
+            <label for="dna-values">Nilai inti</label>
+            <textarea id="dna-values"></textarea>
+          </div>
+
+          <div class="persona-sub">
+            <div class="persona-sub__title">Bahasa &amp; gaya penulisan</div>
+            <p class="persona-sub__desc">Mekanik penulisan, bukan kepribadian &mdash; ini yang bikin konten kerasa konsisten walau topiknya beda-beda.</p>
+
+            <div class="field__row" style="margin-top:14px;">
+              <div class="field">
+                <label for="dna-sapaan">Sapaan pembaca</label>
+                <select id="dna-sapaan">
+                  <option value="kamu">Kamu</option>
+                  <option value="anda">Anda</option>
+                  <option value="campur">Campur sesuai konteks</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="dna-istilah">Istilah asing</label>
+                <select id="dna-istilah">
+                  <option value="pertahankan">Boleh dipertahankan</option>
+                  <option value="indonesia">Diindonesiakan semua</option>
+                  <option value="campur">Campur wajar</option>
+                </select>
+              </div>
+            </div>
+            <div class="field__row">
+              <div class="field">
+                <label for="dna-format-tanggal">Contoh format tanggal</label>
+                <input type="text" id="dna-format-tanggal" placeholder="mis. 1 Agu 2026">
+              </div>
+              <div class="field">
+                <label for="dna-format-angka">Contoh format angka</label>
+                <input type="text" id="dna-format-angka" placeholder="mis. Rp150.000">
+              </div>
+            </div>
+            <div class="field">
+              <label for="dna-gaya-judul">Gaya judul slide</label>
+              <select id="dna-gaya-judul">
+                <option value="sentence">Sentence case &mdash; "Cara menghitung rate"</option>
+                <option value="title">Title Case &mdash; "Cara Menghitung Rate"</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-card__foot">
+            <button type="submit" class="btn btn--primary btn--sm">Simpan</button>
+            <span class="saved-tag" id="dna-saved-tag"></span>
+          </div>
+        </form>
+
+        <!-- ---------- SEGMENTASI ---------- -->
+        <div class="settings-card" id="ptab-segmentasi" data-ptab-panel hidden>
+          <div class="settings-card__title">Segmentasi</div>
+          <p class="settings-card__desc">Siapa yang kita tulisi. Boleh lebih dari satu segmen &mdash; tandai mana yang utama.</p>
+
+          <div class="plan-list" id="segment-list" style="margin-top:16px;"></div>
+
+          <div class="settings-card__foot">
+            <button type="button" class="btn btn--ghost btn--sm" onclick="openSegmentModal()">+ Tambah segmen</button>
+          </div>
+
+          <div class="excel-actions">
+            <button type="button" class="btn btn--ghost btn--sm" onclick="downloadSegmentTemplate()">Unduh template Excel</button>
+            <input type="file" id="segment-import-input" accept=".xlsx,.xls" onchange="importSegmentExcel(event)">
+          </div>
+        </div>
+
+        <!-- ---------- VISUAL ---------- -->
+        <form class="settings-card" id="ptab-visual" data-ptab-panel hidden>
+          <div class="settings-card__title">Visual</div>
+          <p class="settings-card__desc">Warna dan tipografi yang nanti dipetakan ke template render. Format font untuk Satori wajib .ttf/.otf, bukan .woff2.</p>
+
+          <div style="margin-top:14px;">
+            <div class="color-row">
+              <input type="color" class="color-row__swatch" id="color-primary" oninput="syncColorHex('primary')">
+              <span class="color-row__label">Primary</span>
+              <input type="text" class="qa-input color-row__hex" id="color-primary-hex" oninput="syncColorPicker('primary')">
+            </div>
+            <div class="color-row">
+              <input type="color" class="color-row__swatch" id="color-secondary" oninput="syncColorHex('secondary')">
+              <span class="color-row__label">Secondary</span>
+              <input type="text" class="qa-input color-row__hex" id="color-secondary-hex" oninput="syncColorPicker('secondary')">
+            </div>
+            <div class="color-row">
+              <input type="color" class="color-row__swatch" id="color-accent" oninput="syncColorHex('accent')">
+              <span class="color-row__label">Accent</span>
+              <input type="text" class="qa-input color-row__hex" id="color-accent-hex" oninput="syncColorPicker('accent')">
+            </div>
+            <div class="color-row">
+              <input type="color" class="color-row__swatch" id="color-background" oninput="syncColorHex('background')">
+              <span class="color-row__label">Background</span>
+              <input type="text" class="qa-input color-row__hex" id="color-background-hex" oninput="syncColorPicker('background')">
+            </div>
+            <div class="color-row">
+              <input type="color" class="color-row__swatch" id="color-text" oninput="syncColorHex('text')">
+              <span class="color-row__label">Teks</span>
+              <input type="text" class="qa-input color-row__hex" id="color-text-hex" oninput="syncColorPicker('text')">
+            </div>
+          </div>
+
+          <div class="persona-sub">
+            <div class="persona-sub__title">Tipografi</div>
+            <div class="field__row" style="margin-top:14px;">
+              <div class="field">
+                <label for="font-display">Font display</label>
+                <input type="text" id="font-display">
+              </div>
+              <div class="field">
+                <label for="font-body">Font body</label>
+                <input type="text" id="font-body">
+              </div>
+            </div>
+            <div class="field" style="max-width:280px;">
+              <label for="font-mono">Font mono</label>
+              <input type="text" id="font-mono">
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:20px;">
+            <label for="visual-larangan">Larangan visual</label>
+            <textarea id="visual-larangan" placeholder="mis. jangan pakai stock photo generik"></textarea>
+          </div>
+
+          <div class="settings-card__foot">
+            <button type="submit" class="btn btn--primary btn--sm">Simpan</button>
+            <span class="saved-tag" id="visual-saved-tag"></span>
+          </div>
+        </form>
+
+        <!-- ---------- KATA KUNCI ---------- -->
+        <div class="settings-card" id="ptab-katakunci" data-ptab-panel hidden>
+          <div class="settings-card__title">Kata Kunci</div>
+          <p class="settings-card__desc">Bahan ide, distribusi, dan batasan &mdash; dipisah supaya tidak jadi satu daftar campur aduk.</p>
+
+          <div class="field">
+            <label>Kata kunci topik</label>
+            <div class="tag-list" id="kw-list-topik"></div>
+            <div class="quick-add">
+              <input type="text" id="kw-input-topik" class="qa-input" placeholder="mis. rate freelance">
+              <button type="button" class="btn btn--ghost btn--sm" onclick="addKeyword('topik')">Tambah</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Hashtag</label>
+            <div class="tag-list" id="kw-list-hashtag"></div>
+            <div class="quick-add">
+              <input type="text" id="kw-input-hashtag" class="qa-input" placeholder="mis. #freelanceindonesia">
+              <button type="button" class="btn btn--ghost btn--sm" onclick="addKeyword('hashtag')">Tambah</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Kata terlarang</label>
+            <div class="tag-list" id="kw-list-larangan"></div>
+            <div class="quick-add">
+              <input type="text" id="kw-input-larangan" class="qa-input" placeholder="mis. dijamin kaya">
+              <button type="button" class="btn btn--ghost btn--sm" onclick="addKeyword('larangan')">Tambah</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Bank CTA</label>
+            <div class="tag-list" id="kw-list-cta"></div>
+            <div class="quick-add">
+              <input type="text" id="kw-input-cta" class="qa-input" placeholder="mis. Simpan buat nanti">
+              <button type="button" class="btn btn--ghost btn--sm" onclick="addKeyword('cta')">Tambah</button>
+            </div>
+          </div>
+
+          <div class="excel-actions">
+            <button type="button" class="btn btn--ghost btn--sm" onclick="downloadKeywordTemplate()">Unduh template Excel</button>
+            <input type="file" id="keyword-import-input" accept=".xlsx,.xls" onchange="importKeywordExcel(event)">
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== RENCANA KONTEN ===================== -->
+      <section class="view" id="view-plan" hidden>
+        <div class="panel-head">
+          <div>
+            <h1>Rencana konten</h1>
+            <p>Tema yang sudah disusun untuk minggu berjalan. LLM memakai ini sebagai bahan sebelum menulis tiap slide.</p>
+          </div>
+        </div>
+        <div class="plan-list" id="plan-list"></div>
+      </section>
+
+      <!-- ===================== ANTREAN ===================== -->
+      <section class="view" id="view-queue" hidden>
+        <div class="panel-head">
+          <div>
+            <h1>Antrean</h1>
+            <p>Draf yang belum tayang &mdash; menunggu di-generate, ditinjau, atau dijadwalkan.</p>
+          </div>
+          <div class="tabs" id="queue-tabs">
+            <button class="tab" data-filter="all" aria-pressed="true">Semua</button>
+            <button class="tab" data-filter="review" aria-pressed="false">Menunggu review</button>
+            <button class="tab" data-filter="approved" aria-pressed="false">Disetujui</button>
+            <button class="tab" data-filter="draft" aria-pressed="false">Draf</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Jadwal</th><th class="hide-sm">Jenis</th><th>Topik</th><th>Status</th></tr></thead>
+          <tbody id="queue-body"></tbody>
+        </table>
+      </section>
+
+      <!-- ===================== RIWAYAT ===================== -->
+      <section class="view" id="view-history" hidden>
+        <div class="panel-head">
+          <div>
+            <h1>Riwayat</h1>
+            <p>Percobaan publikasi yang sudah selesai &mdash; berhasil tayang atau gagal.</p>
+          </div>
+          <div class="tabs" id="history-tabs">
+            <button class="tab" data-filter="all" aria-pressed="true">Semua</button>
+            <button class="tab" data-filter="published" aria-pressed="false">Terbit</button>
+            <button class="tab" data-filter="failed" aria-pressed="false">Gagal</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Tayang</th><th class="hide-sm">Jenis</th><th>Topik</th><th>Status</th></tr></thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </section>
+
+      <!-- ===================== TEMPLATE ===================== -->
+      <section class="view" id="view-template" hidden>
+        <div class="panel-head">
+          <div>
+            <h1>Template</h1>
+            <p>Susunan slide yang dipakai saat merender. LLM cuma mengisi teks di slot ini &mdash; layoutnya sendiri sudah dikunci di kode.</p>
+          </div>
+        </div>
+
+        <div class="tpl-note">
+          <span>&#9432;</span>
+          <span><b>Kenapa tidak bisa diedit di sini:</b> Satori cuma mendukung subset CSS terbatas (flexbox saja, tanpa grid). Template yang digenerate bebas gampang jebol, jadi tiap layout ditulis dan diuji manual di kode. Untuk mengubah struktur, minta developer mengubahnya di <code>lib/render/templates/</code>.</span>
+        </div>
+
+        <div class="tpl-grid" id="tpl-grid"></div>
+      </section>
+
+      <!-- ===================== PENGATURAN ===================== -->
+      <section class="view" id="view-settings" hidden>
+        <div class="panel-head">
+          <div>
+            <h1>Pengaturan</h1>
+            <p>Yang sering berubah ada di sini. Kredensial sistem (API key, secret Meta) tidak ditaruh di UI &mdash; itu dikelola lewat environment variable oleh developer, lihat <code>design.md</code> &sect;11.</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+
+          <!-- Akun Instagram -->
+          <div class="settings-card">
+            <div class="settings-card__title">Akun Instagram</div>
+            <p class="settings-card__desc">Akun yang dipakai untuk publikasi otomatis. Token disimpan terenkripsi di server, tidak pernah ditampilkan di sini.</p>
+            <div class="status-row" style="margin-top:16px;">
+              <div>
+                <div class="status-row__label" id="ig-handle">&mdash;</div>
+                <div class="status-row__meta" id="ig-meta">&mdash;</div>
+              </div>
+              <span class="chip" id="ig-chip">&mdash;</span>
+            </div>
+            <p class="alert" id="ig-warning" hidden></p>
+            <div class="settings-card__foot">
+              <button class="btn btn--ghost btn--sm" onclick="reconnectIG()">Sambungkan ulang</button>
+            </div>
+          </div>
+
+          <!-- Brand & jadwal -->
+          <form class="settings-card" id="settings-brand-form">
+            <div class="settings-card__title">Jadwal</div>
+            <p class="settings-card__desc">Kapan cron generate dan publish jalan. Brand voice sekarang diatur di <button type="button" class="text-ultra underline" onclick="switchView('persona'); switchPersonaTab('dna');">Persona &rarr; DNA</button>, supaya tidak ada dua sumber kebenaran.</p>
+
+            <div class="field__row">
+              <div class="field">
+                <label for="settings-gen-time">Jam generate harian</label>
+                <input type="time" id="settings-gen-time">
+              </div>
+              <div class="field">
+                <label>Zona waktu</label>
+                <input type="text" value="WIB (UTC+7)" disabled style="opacity:.6;">
+              </div>
+            </div>
+
+            <div class="field__row">
+              <div class="field">
+                <label for="settings-window-start">Jendela publish mulai</label>
+                <input type="time" id="settings-window-start">
+              </div>
+              <div class="field">
+                <label for="settings-window-end">Jendela publish sampai</label>
+                <input type="time" id="settings-window-end">
+              </div>
+            </div>
+            <p class="field__hint">Publish hanya dijalankan di antara dua jam ini, walau post yang disetujui sudah siap lebih awal.</p>
+
+            <div class="settings-card__foot">
+              <button type="submit" class="btn btn--primary btn--sm">Simpan</button>
+              <span class="saved-tag" id="brand-saved-tag"></span>
+            </div>
+          </form>
+
+          <!-- Notifikasi -->
+          <form class="settings-card" id="settings-notify-form">
+            <div class="settings-card__title">Notifikasi</div>
+            <p class="settings-card__desc">Ke mana alert dikirim kalau job gagal atau token mau kedaluwarsa.</p>
+
+            <div class="field">
+              <label for="settings-notify-channel">Kanal</label>
+              <select id="settings-notify-channel" onchange="toggleNotifyFields()">
+                <option value="email">Email</option>
+                <option value="telegram">Telegram</option>
+                <option value="none">Tidak ada</option>
+              </select>
+            </div>
+
+            <div class="field" id="notify-email-field">
+              <label for="settings-notify-email">Alamat email</label>
+              <input type="email" id="settings-notify-email" placeholder="nama@domain.com">
+            </div>
+
+            <div class="field" id="notify-telegram-field" hidden>
+              <label for="settings-notify-telegram">Telegram chat ID</label>
+              <input type="text" id="settings-notify-telegram" placeholder="mis. 123456789">
+            </div>
+
+            <label class="check-row"><input type="checkbox" id="settings-notify-failure"> Kirim alert kalau post gagal terbit</label>
+            <label class="check-row"><input type="checkbox" id="settings-notify-expiry"> Kirim alert kalau token IG &lt;14 hari lagi kedaluwarsa</label>
+
+            <div class="settings-card__foot">
+              <button type="submit" class="btn btn--primary btn--sm">Simpan</button>
+              <span class="saved-tag" id="notify-saved-tag"></span>
+            </div>
+          </form>
+
+          <!-- Pengguna -->
+          <div class="settings-card">
+            <div class="settings-card__title">Pengguna</div>
+            <p class="settings-card__desc">Akun dibuat lewat CLI oleh admin, bukan lewat form &mdash; sengaja begitu karena penggunanya sedikit. Jalankan <code>pnpm cli user:create &lt;username&gt;</code> di server untuk menambah orang baru.</p>
+            <table style="margin-top:16px;">
+              <thead><tr><th>Pengguna</th><th class="hide-sm">Peran</th><th>Login terakhir</th><th></th></tr></thead>
+              <tbody id="users-body"></tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: rencana konten (tambah/edit tema)
+     ============================================================ -->
+<div class="modal-backdrop" id="modal-plan" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="plan-modal-title">
+    <div class="modal__head">
+      <div>
+        <div class="modal__title" id="plan-modal-title">Tambah tema</div>
+        <div class="modal__sub">Tema masuk ke rencana konten, belum jadi draf gambar.</div>
+      </div>
+      <button class="modal__close" aria-label="Tutup" onclick="closeModal('modal-plan')">&times;</button>
+    </div>
+    <form class="modal__body" id="plan-form">
+      <input type="hidden" id="plan-id">
+      <div class="field__row">
+        <div class="field">
+          <label for="plan-date">Tanggal</label>
+          <input type="date" id="plan-date" required>
+        </div>
+        <div class="field">
+          <label for="plan-type">Jenis</label>
+          <select id="plan-type">
+            <option value="carousel">Carousel</option>
+            <option value="single">Single post</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="plan-topic">Topik</label>
+        <input type="text" id="plan-topic" placeholder="mis. Cara menghitung rate per jam" required>
+      </div>
+      <div class="field">
+        <label for="plan-angle">Sudut pandang</label>
+        <textarea id="plan-angle" placeholder="mis. Rumus sederhana + contoh angka nyata"></textarea>
+      </div>
+      <div class="field">
+        <label for="plan-template">Template</label>
+        <select id="plan-template">
+          <option value="cover_list">cover_list</option>
+          <option value="point_grid">point_grid</option>
+          <option value="quote">quote</option>
+          <option value="cta_only">cta_only</option>
+        </select>
+        <p class="field__hint">Menentukan layout Satori yang dipakai saat render.</p>
+      </div>
+      <div class="modal__foot">
+        <button type="submit" class="btn btn--primary">Simpan tema</button>
+        <button type="button" class="btn btn--ghost" onclick="closeModal('modal-plan')">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: segmen (tambah/edit)
+     ============================================================ -->
+<div class="modal-backdrop" id="modal-segment" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="segment-modal-title">
+    <div class="modal__head">
+      <div>
+        <div class="modal__title" id="segment-modal-title">Tambah segmen</div>
+        <div class="modal__sub">Satu audiens yang jadi target tulisan.</div>
+      </div>
+      <button class="modal__close" aria-label="Tutup" onclick="closeModal('modal-segment')">&times;</button>
+    </div>
+    <form class="modal__body" id="segment-form">
+      <input type="hidden" id="segment-id">
+      <div class="field__row">
+        <div class="field">
+          <label for="segment-name">Nama segmen</label>
+          <input type="text" id="segment-name" placeholder="mis. Freelancer pemula 0-2 tahun" required>
+        </div>
+        <div class="field">
+          <label for="segment-tier">Prioritas</label>
+          <select id="segment-tier">
+            <option value="Utama">Utama</option>
+            <option value="Sekunder">Sekunder</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="segment-desc">Deskripsi</label>
+        <textarea id="segment-desc"></textarea>
+      </div>
+      <div class="field">
+        <label for="segment-pain">Pain point</label>
+        <textarea id="segment-pain"></textarea>
+      </div>
+      <div class="field">
+        <label for="segment-need">Kebutuhan</label>
+        <textarea id="segment-need"></textarea>
+      </div>
+      <div class="modal__foot">
+        <button type="submit" class="btn btn--primary">Simpan segmen</button>
+        <button type="button" class="btn btn--ghost" onclick="closeModal('modal-segment')">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: post baru (cepat)
+     ============================================================ -->
+<div class="modal-backdrop" id="modal-post" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="post-modal-title">
+    <div class="modal__head">
+      <div>
+        <div class="modal__title" id="post-modal-title">Buat post baru</div>
+        <div class="modal__sub">Masuk ke Antrean sebagai draf, belum di-generate.</div>
+      </div>
+      <button class="modal__close" aria-label="Tutup" onclick="closeModal('modal-post')">&times;</button>
+    </div>
+    <form class="modal__body" id="post-form">
+      <div class="field__row">
+        <div class="field">
+          <label for="post-date">Tanggal tayang</label>
+          <input type="date" id="post-date" required>
+        </div>
+        <div class="field">
+          <label for="post-time">Jam</label>
+          <input type="time" id="post-time" value="19:00">
+        </div>
+      </div>
+      <div class="field">
+        <label for="post-topic">Topik</label>
+        <input type="text" id="post-topic" placeholder="mis. Template invoice yang bisa kamu pakai" required>
+      </div>
+      <div class="field__row">
+        <div class="field">
+          <label for="post-type">Jenis</label>
+          <select id="post-type">
+            <option value="carousel">Carousel</option>
+            <option value="single">Single post</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="post-template">Template</label>
+          <select id="post-template">
+            <option value="cover_list">cover_list</option>
+            <option value="point_grid">point_grid</option>
+            <option value="quote">quote</option>
+            <option value="cta_only">cta_only</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal__foot">
+        <button type="submit" class="btn btn--primary">Tambah ke antrean</button>
+        <button type="button" class="btn btn--ghost" onclick="closeModal('modal-post')">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: detail antrean
+     ============================================================ -->
+<div class="modal-backdrop" id="modal-queue-detail" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="qd-title">
+    <div class="modal__head">
+      <div>
+        <div class="modal__title" id="qd-title">&mdash;</div>
+        <div class="modal__sub" id="qd-sub">&mdash;</div>
+      </div>
+      <button class="modal__close" aria-label="Tutup" onclick="closeModal('modal-queue-detail')">&times;</button>
+    </div>
+    <div class="modal__body">
+      <div class="mini-strip" id="qd-slides"></div>
+      <p class="caption" id="qd-caption" style="font-size:13px; max-width:none;"></p>
+      <p class="proof__spec" id="qd-spec" style="margin-top:14px;"></p>
+    </div>
+    <div class="modal__foot" id="qd-actions"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: detail riwayat
+     ============================================================ -->
+<div class="modal-backdrop" id="modal-history-detail" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hd-title">
+    <div class="modal__head">
+      <div>
+        <div class="modal__title" id="hd-title">&mdash;</div>
+        <div class="modal__sub" id="hd-sub">&mdash;</div>
+      </div>
+      <button class="modal__close" aria-label="Tutup" onclick="closeModal('modal-history-detail')">&times;</button>
+    </div>
+    <div class="modal__body">
+      <p class="alert" id="hd-error" hidden></p>
+      <div class="timeline" id="hd-timeline"></div>
+    </div>
+    <div class="modal__foot" id="hd-actions"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: contoh template (ukuran penuh)
+     ============================================================ -->
+<div class="modal-backdrop" id="modal-template-preview" hidden>
+  <div class="modal" style="max-width:640px;" role="dialog" aria-modal="true" aria-labelledby="tp-title">
+    <div class="modal__head">
+      <div>
+        <div class="modal__title" id="tp-title">&mdash;</div>
+        <div class="modal__sub" id="tp-sub">&mdash;</div>
+      </div>
+      <button class="modal__close" aria-label="Tutup" onclick="closeModal('modal-template-preview')">&times;</button>
+    </div>
+    <div class="modal__body">
+      <div class="strip" id="tp-strip" style="padding:2px 2px 8px;"></div>
+      <div class="tpl-specs" id="tp-specs"></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn--ghost" onclick="closeModal('modal-template-preview')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ============================================================
+   DATA (di memori saja — prototipe)
+   ============================================================ */
+var plans = [
+  { id:'plan1', date:'2026-08-01', topic:'5 kesalahan freelancer pemula', angle:'Kesalahan umum yang bikin kerja keras tapi tetap kere', type:'carousel', template:'cover_list' },
+  { id:'plan2', date:'2026-08-02', topic:'Cara menghitung rate per jam', angle:'Rumus sederhana + contoh angka nyata', type:'carousel', template:'cover_list' },
+  { id:'plan3', date:'2026-08-03', topic:'Template invoice yang bisa kamu pakai', angle:'Satu contoh konkret, siap dipakai langsung', type:'single', template:'quote' },
+  { id:'plan4', date:'2026-08-04', topic:'3 tanda klien bakal bermasalah', angle:'Red flag dari obrolan pertama sebelum kontrak', type:'carousel', template:'cover_list' }
+];
+
+var posts = [
+  { id:'post1', date:'2026-08-01', time:'19:00', type:'carousel', topic:'5 kesalahan freelancer pemula', status:'review', template:'cover_list', slideKinds:['cover','point','point','point','point','point','cta'],
+    caption:'Lima hal ini kelihatan sepele waktu baru mulai, tapi efeknya menumpuk sampai bertahun-tahun kemudian.', tags:'#freelanceindonesia #freelancerpemula #kerjaremote' },
+  { id:'post2', date:'2026-08-02', time:'19:00', type:'carousel', topic:'Cara menghitung rate per jam', status:'approved', template:'cover_list', slideKinds:['cover','point','point','point','point','cta'],
+    caption:'Rate per jam bukan sekadar bagi gaji impian dengan jam kerja. Ada biaya yang sering kelupaan.', tags:'#ratecard #freelanceindonesia' },
+  { id:'post3', date:'2026-08-03', time:'11:00', type:'single', topic:'Template invoice yang bisa kamu pakai', status:'draft', template:'quote', slideKinds:['quote'],
+    caption:'Belum digenerate.', tags:'' },
+  { id:'post4', date:'2026-07-30', time:'19:00', type:'carousel', topic:'3 tanda klien bakal bermasalah', status:'published', template:'cover_list', slideKinds:['cover','point','point','point','cta'],
+    caption:'Tiga tanda ini muncul sebelum kontrak diteken, cuma sering diabaikan.', tags:'#redflagklien', igLink:'#',
+    logs:[ {phase:'container', ok:true, time:'19:00:01'}, {phase:'carousel', ok:true, time:'19:00:03'}, {phase:'publish', ok:true, time:'19:00:05', detail:'Media ID diterima dari Graph API.'} ] },
+  { id:'post5', date:'2026-07-29', time:'19:00', type:'single', topic:'Checklist onboarding klien baru', status:'failed', template:'point_grid', slideKinds:['point'],
+    caption:'Checklist singkat sebelum mulai proyek baru.', tags:'',
+    error:'Token Instagram kedaluwarsa. Sambungkan ulang akun di Pengaturan, lalu coba terbitkan lagi.',
+    logs:[ {phase:'container', ok:true, time:'19:00:01'}, {phase:'publish', ok:false, time:'19:00:04', detail:'Graph API error 190: token tidak valid.'} ] },
+  { id:'post6', date:'2026-07-28', time:'19:00', type:'carousel', topic:'Kenapa harga murah bukan strategi', status:'published', template:'cover_list', slideKinds:['cover','point','point','point','point','cta'],
+    caption:'Harga murah menarik klien yang salah, bukan klien yang banyak.', tags:'#hargafreelance', igLink:'#',
+    logs:[ {phase:'container', ok:true, time:'19:00:01'}, {phase:'carousel', ok:true, time:'19:00:04'}, {phase:'publish', ok:true, time:'19:00:06'} ] },
+  { id:'post7', date:'2026-07-27', time:'11:00', type:'single', topic:'Kapan waktunya naikin harga', status:'published', template:'quote', slideKinds:['quote'],
+    caption:'Kalau kalender kamu penuh tiga bulan ke depan, itu sinyal.', tags:'#ratecard', igLink:'#',
+    logs:[ {phase:'container', ok:true, time:'11:00:01'}, {phase:'publish', ok:true, time:'11:00:03'} ] }
+];
+
+/* blok slide dasar — satu sumber kebenaran untuk batas karakter, lihat design.md §7.3 */
+var BLOCKS = {
+  cover: { label:'Cover', canvasClass:'slide__canvas--cover', fields:[ {name:'eyebrow', limit:20}, {name:'title', limit:60}, {name:'subtitle', limit:90} ] },
+  point: { label:'Point', canvasClass:'slide__canvas--point', fields:[ {name:'index', limit:2}, {name:'heading', limit:45}, {name:'body', limit:160} ] },
+  quote: { label:'Quote', canvasClass:'slide__canvas--point', fields:[ {name:'quote', limit:140}, {name:'attribution', limit:40} ] },
+  cta:   { label:'CTA', canvasClass:'slide__canvas--cta', fields:[ {name:'headline', limit:50}, {name:'handle', limit:30} ] }
+};
+
+var TEMPLATES = [
+  { id:'cover_list', name:'Cover + List', kind:'carousel',
+    desc:'Slide pembuka lalu poin bernomor, ditutup ajakan bertindak. Cocok untuk listicle atau langkah-langkah.',
+    blocks:['cover','point','point','cta'],
+    example:[
+      { block:'cover', eyebrow:'Panduan', title:'5 kesalahan freelancer pemula', subtitle:'Yang bikin kamu kerja keras tapi tetap kere' },
+      { block:'point', index:'01', heading:'Pasang harga dari rasa takut', body:'Kamu banting harga karena takut ditolak. Klien yang datang justru paling banyak menuntut.' },
+      { block:'point', index:'02', heading:'Kerja tanpa kontrak', body:'Chat WhatsApp bukan kesepakatan. Satu halaman scope dan termin sudah cukup melindungi.' },
+      { block:'cta', headline:'Mana yang paling sering kamu lakukan?', handle:'@kelasfreelance.id' }
+    ] },
+  { id:'point_grid', name:'Point Grid', kind:'carousel',
+    desc:'Langsung ke isi tanpa slide cover terpisah. Dipakai kalau judulnya sendiri sudah cukup jelas dari caption.',
+    blocks:['point','point','point'],
+    example:[
+      { block:'point', index:'01', heading:'Kirim brief sebelum call', body:'Klien yang belum siap brief biasanya belum siap budget juga.' },
+      { block:'point', index:'02', heading:'Kunci scope di email', body:'Verbal gampang berubah pikiran. Tulisan jadi rujukan kalau ada dispute.' },
+      { block:'point', index:'03', heading:'Minta feedback tertulis', body:'Revisi lisan gampang membengkak tanpa terasa.' }
+    ] },
+  { id:'quote', name:'Quote', kind:'single',
+    desc:'Satu kutipan atau pernyataan tunggal dengan atribusi kecil. Untuk post reflektif, bukan listicle.',
+    blocks:['quote'],
+    example:[
+      { block:'quote', quote:'Kalau kalender kamu penuh tiga bulan ke depan, itu sinyal waktunya naikin harga.', attribution:'@kelasfreelance.id' }
+    ] },
+  { id:'cta_only', name:'CTA Only', kind:'single',
+    desc:'Satu slide ajakan bertindak. Untuk pengumuman, promosi, atau penutup rangkaian konten.',
+    blocks:['cta'],
+    example:[
+      { block:'cta', headline:'Kelas baru dibuka minggu depan', handle:'@kelasfreelance.id' }
+    ] }
+];
+
+var STATUS_LABEL = { review:'Menunggu review', approved:'Disetujui', draft:'Draf', published:'Terbit', failed:'Gagal' };
+var STATUS_CHIP  = { review:'chip--review', approved:'chip--approved', draft:'chip--draft', published:'chip--live', failed:'chip--failed' };
+var queueFilter = 'all';
+var historyFilter = 'all';
+var settingsFormInit = false;
+
+var settings = {
+  ig: { handle:'@kelasfreelance.id', connected:true, expiresInDays:11, lastConnected:'2 Jul 2026' },
+  scheduleGenerate: '06:00',
+  scheduleWindowStart: '08:00',
+  scheduleWindowEnd: '22:00',
+  notifyChannel: 'email',
+  notifyEmail: 'rangga@kelasfreelance.id',
+  notifyTelegram: '',
+  notifyOnFailure: true,
+  notifyOnTokenExpiry: true
+};
+
+var users = [
+  { id:'u1', username:'rangga', role:'admin', lastLogin:'31 Jul 2026, 09:12', isSelf:true },
+  { id:'u2', username:'dinda', role:'editor', lastLogin:'29 Jul 2026, 14:03', isSelf:false }
+];
+
+var personaFormInit = false;
+
+var persona = {
+  branding: {
+    name: 'Kelas Freelance',
+    tagline: 'Belajar freelance tanpa drama',
+    positioning: 'Kami bantu freelancer pemula dapat klien pertama tanpa banting harga.',
+    dos: 'Bahasa santai, contoh angka nyata, ajakan yang konkret.',
+    donts: 'Jargon korporat, motivasi kosong tanpa langkah nyata.',
+    mix: { edukasi:40, studiKasus:20, promosi:20, hiburan:20 },
+    frequency: 5
+  },
+  dna: {
+    pillars: ['Santai', 'Blak-blakan', 'Suportif'],
+    pairs: [
+      { do:'Kamu banting harga karena takut ditolak.', dont:'Penetapan harga yang tidak strategis dapat merugikan freelancer.' },
+      { do:'DP 50% itu bukan tidak sopan, itu standar.', dont:'Mohon pertimbangkan untuk meminta pembayaran di muka.' }
+    ],
+    values: 'Transparansi, kerja jujur, bantu tanpa menggurui.',
+    sapaan: 'kamu',
+    istilahAsing: 'campur',
+    formatTanggal: '1 Agu 2026',
+    formatAngka: 'Rp150.000',
+    gayaJudul: 'sentence'
+  },
+  visual: {
+    colors: { primary:'#2B2AE0', secondary:'#15171D', accent:'#D4006E', background:'#EFEEE8', text:'#15171D' },
+    fonts: { display:'Bricolage Grotesque', body:'IBM Plex Sans', mono:'IBM Plex Mono' },
+    larangan: 'Jangan pakai stock photo generik. Hindari emoji berlebihan, maksimal satu per slide.'
+  }
+};
+
+var segments = [
+  { id:'seg1', name:'Freelancer pemula 0-2 tahun', tier:'Utama', desc:'Baru lepas dari kerja kantoran atau baru lulus, belum punya portofolio kuat.', painPoint:'Takut menetapkan harga, sering kerja di bawah tarif layak.', need:'Contoh angka konkret dan bahasa yang tidak menggurui.' },
+  { id:'seg2', name:'Freelancer 2-5 tahun, mau naik kelas', tier:'Sekunder', desc:'Sudah punya klien tetap, ingin menaikkan tarif atau pindah ke klien lebih besar.', painPoint:'Bingung kapan waktu yang tepat menaikkan harga.', need:'Kerangka berpikir, bukan motivasi.' }
+];
+
+var keywords = {
+  topik: ['rate freelance', 'kontrak kerja', 'klien red flag', 'invoice'],
+  hashtag: ['#freelanceindonesia', '#kerjaremote', '#freelancerpemula'],
+  larangan: ['dijamin kaya', 'tanpa kerja keras', 'auto sukses'],
+  cta: ['Simpan buat nanti', 'Komen pengalaman kamu', 'DM kami buat konsultasi']
+};
+
+/* ============================================================
+   UTIL
+   ============================================================ */
+function fmtDate(d, t){
+  var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  var parts = d.split('-');
+  var out = parts[2] + ' ' + months[parseInt(parts[1],10)-1];
+  return t ? out + ' \u00b7 ' + t : out;
+}
+function chip(status){ return '<span class="chip ' + STATUS_CHIP[status] + '">' + STATUS_LABEL[status] + '</span>'; }
+function toast(msg){
+  var el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 2600);
+}
+function miniSlideHTML(kind, i, total){
+  var label = kind === 'cover' ? 'Cover' : kind === 'cta' ? 'CTA' : ('0' + (i));
+  return '<div class="mini-slide mini-slide--' + kind + '"><div class="mini-slide__k">' + (i) + '/' + total + '</div><div class="mini-slide__h">' + label + '</div></div>';
+}
+
+/* ============================================================
+   RENDER: Hari ini (preview antrean)
+   ============================================================ */
+function renderTodayPreview(){
+  var upcoming = posts.filter(function(p){ return ['review','approved','draft'].indexOf(p.status) > -1 && p.id !== 'post1'; }).slice(0,3);
+  document.getElementById('today-preview-body').innerHTML = upcoming.map(function(p){
+    return '<tr class="is-clickable" onclick="goToQueueItem(\'' + p.id + '\')">' +
+      '<td class="t-when">' + fmtDate(p.date, p.time) + '</td>' +
+      '<td class="hide-sm t-type">' + p.type + '</td>' +
+      '<td class="t-topic">' + p.topic + '</td>' +
+      '<td>' + chip(p.status) + '</td></tr>';
+  }).join('');
+}
+function goToQueueItem(id){ switchView('queue'); openQueueDetail(id); }
+
+/* ============================================================
+   RENDER: Rencana konten
+   ============================================================ */
+function renderPlan(){
+  var list = document.getElementById('plan-list');
+  if (!plans.length){
+    list.innerHTML = '<div class="empty"><strong>Belum ada tema</strong><p>Rencana konten kosong untuk periode ini. Tambahkan tema supaya cron generate:daily punya bahan untuk ditulis.</p><button class="btn btn--primary btn--sm" onclick="openPlanModal()">Tambah tema</button></div>';
+    return;
+  }
+  list.innerHTML = plans.map(function(p){
+    return '<div class="plan-card">' +
+      '<div class="plan-card__date">' + fmtDate(p.date) + '</div>' +
+      '<div class="plan-card__body">' +
+        '<div class="plan-card__topic">' + p.topic + '</div>' +
+        '<div class="plan-card__angle">' + (p.angle || 'Belum ada sudut pandang.') + '</div>' +
+        '<div class="plan-card__badges"><span class="badge">' + p.type + '</span><span class="badge">' + p.template + '</span></div>' +
+      '</div>' +
+      '<div class="plan-card__actions">' +
+        '<button class="btn btn--ghost btn--sm" onclick="openPlanModal(\'' + p.id + '\')">Ubah</button>' +
+        '<button class="btn btn--danger btn--sm" onclick="deletePlan(\'' + p.id + '\')">Hapus</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+function openPlanModal(id){
+  var isEdit = !!id;
+  document.getElementById('plan-modal-title').textContent = isEdit ? 'Ubah tema' : 'Tambah tema';
+  var p = isEdit ? plans.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('plan-id').value = id || '';
+  document.getElementById('plan-date').value = p ? p.date : '';
+  document.getElementById('plan-type').value = p ? p.type : 'carousel';
+  document.getElementById('plan-topic').value = p ? p.topic : '';
+  document.getElementById('plan-angle').value = p ? p.angle : '';
+  document.getElementById('plan-template').value = p ? p.template : 'cover_list';
+  openModal('modal-plan');
+}
+function deletePlan(id){
+  plans = plans.filter(function(p){ return p.id !== id; });
+  renderPlan();
+  toast('Tema dihapus dari rencana.');
+}
+document.getElementById('plan-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var id = document.getElementById('plan-id').value;
+  var data = {
+    date: document.getElementById('plan-date').value,
+    type: document.getElementById('plan-type').value,
+    topic: document.getElementById('plan-topic').value.trim(),
+    angle: document.getElementById('plan-angle').value.trim(),
+    template: document.getElementById('plan-template').value
+  };
+  if (!data.date || !data.topic){ toast('Tanggal dan topik wajib diisi.'); return; }
+  if (id){
+    var existing = plans.find(function(p){ return p.id === id; });
+    Object.assign(existing, data);
+    toast('Tema diperbarui.');
+  } else {
+    data.id = 'plan' + Date.now();
+    plans.push(data);
+    plans.sort(function(a,b){ return a.date.localeCompare(b.date); });
+    toast('Tema baru ditambahkan ke rencana.');
+  }
+  closeModal('modal-plan');
+  renderPlan();
+});
+
+/* ============================================================
+   RENDER: Antrean
+   ============================================================ */
+function renderQueue(){
+  var rows = posts.filter(function(p){ return ['review','approved','draft'].indexOf(p.status) > -1; });
+  if (queueFilter !== 'all') rows = rows.filter(function(p){ return p.status === queueFilter; });
+  rows.sort(function(a,b){ return (a.date+a.time).localeCompare(b.date+b.time); });
+
+  var body = document.getElementById('queue-body');
+  if (!rows.length){
+    body.innerHTML = '<tr><td colspan="4"><div class="empty"><strong>Tidak ada yang cocok</strong><p>Tidak ada draf dengan status ini di antrean.</p></div></td></tr>';
+  } else {
+    body.innerHTML = rows.map(function(p){
+      return '<tr class="is-clickable" onclick="openQueueDetail(\'' + p.id + '\')">' +
+        '<td class="t-when">' + fmtDate(p.date, p.time) + '</td>' +
+        '<td class="hide-sm t-type">' + p.type + '</td>' +
+        '<td class="t-topic">' + p.topic + '</td>' +
+        '<td>' + chip(p.status) + '</td></tr>';
+    }).join('');
+  }
+  updateBadges();
+}
+document.getElementById('queue-tabs').addEventListener('click', function(e){
+  var btn = e.target.closest('.tab');
+  if (!btn) return;
+  queueFilter = btn.dataset.filter;
+  Array.from(document.querySelectorAll('#queue-tabs .tab')).forEach(function(t){ t.setAttribute('aria-pressed', t === btn); });
+  renderQueue();
+});
+
+function openQueueDetail(id){
+  var p = posts.find(function(x){ return x.id === id; });
+  if (!p) return;
+  document.getElementById('qd-title').textContent = p.topic;
+  document.getElementById('qd-sub').textContent = fmtDate(p.date, p.time) + ' \u00b7 ' + p.type;
+  document.getElementById('qd-slides').innerHTML = p.slideKinds.map(function(k,i){ return miniSlideHTML(k, i+1, p.slideKinds.length); }).join('');
+  document.getElementById('qd-caption').textContent = p.caption;
+  document.getElementById('qd-spec').innerHTML = 'Template &nbsp; <b>' + p.template + '</b><br>Status &nbsp;&nbsp;&nbsp; <b>' + STATUS_LABEL[p.status] + '</b>';
+
+  var actions = '';
+  if (p.status === 'review'){
+    actions = '<button class="btn btn--primary" onclick="approvePost(\'' + p.id + '\'); closeModal(\'modal-queue-detail\')">Setujui &amp; jadwalkan</button>' +
+              '<button class="btn btn--ghost" onclick="regeneratePost(\'' + p.id + '\')">Buat ulang</button>' +
+              '<button class="btn btn--quiet" onclick="rejectPost(\'' + p.id + '\'); closeModal(\'modal-queue-detail\')">Tolak draf ini</button>';
+  } else if (p.status === 'approved'){
+    actions = '<button class="btn btn--ghost" onclick="unapprovePost(\'' + p.id + '\'); closeModal(\'modal-queue-detail\')">Batalkan persetujuan</button>';
+  } else if (p.status === 'draft'){
+    actions = '<button class="btn btn--primary" onclick="regeneratePost(\'' + p.id + '\')">Generate sekarang</button>' +
+              '<button class="btn btn--danger" onclick="deletePost(\'' + p.id + '\'); closeModal(\'modal-queue-detail\')">Hapus draf</button>';
+  }
+  document.getElementById('qd-actions').innerHTML = actions;
+  openModal('modal-queue-detail');
+}
+
+function approvePost(id){
+  var p = posts.find(function(x){ return x.id === id; });
+  p.status = 'approved';
+  toast('Disetujui, dijadwalkan tayang ' + fmtDate(p.date, p.time) + '.');
+  renderAll();
+}
+function unapprovePost(id){
+  var p = posts.find(function(x){ return x.id === id; });
+  p.status = 'review';
+  toast('Persetujuan dibatalkan, kembali ke review.');
+  renderAll();
+}
+function rejectPost(id){
+  var p = posts.find(function(x){ return x.id === id; });
+  p.status = 'draft';
+  toast('Draf ditolak, dikembalikan ke status draf.');
+  renderAll();
+}
+function regeneratePost(id){
+  toast('Membuat ulang draf... (disimulasikan, tidak memanggil LLM sungguhan)');
+}
+function deletePost(id){
+  posts = posts.filter(function(p){ return p.id !== id; });
+  toast('Draf dihapus dari antrean.');
+  renderAll();
+}
+
+/* ============================================================
+   RENDER: Riwayat
+   ============================================================ */
+function renderHistory(){
+  var rows = posts.filter(function(p){ return ['published','failed'].indexOf(p.status) > -1; });
+  if (historyFilter !== 'all') rows = rows.filter(function(p){ return p.status === historyFilter; });
+  rows.sort(function(a,b){ return (b.date+b.time).localeCompare(a.date+a.time); });
+
+  var body = document.getElementById('history-body');
+  if (!rows.length){
+    body.innerHTML = '<tr><td colspan="4"><div class="empty"><strong>Belum ada riwayat</strong><p>Tidak ada percobaan publikasi dengan status ini.</p></div></td></tr>';
+  } else {
+    body.innerHTML = rows.map(function(p){
+      var errRow = p.status === 'failed' ? '<span class="t-err">' + p.error + '</span>' : '';
+      return '<tr class="is-clickable" onclick="openHistoryDetail(\'' + p.id + '\')">' +
+        '<td class="t-when">' + fmtDate(p.date, p.time) + '</td>' +
+        '<td class="hide-sm t-type">' + p.type + '</td>' +
+        '<td class="t-topic">' + p.topic + errRow + '</td>' +
+        '<td>' + chip(p.status) + '</td></tr>';
+    }).join('');
+  }
+}
+document.getElementById('history-tabs').addEventListener('click', function(e){
+  var btn = e.target.closest('.tab');
+  if (!btn) return;
+  historyFilter = btn.dataset.filter;
+  Array.from(document.querySelectorAll('#history-tabs .tab')).forEach(function(t){ t.setAttribute('aria-pressed', t === btn); });
+  renderHistory();
+});
+
+function openHistoryDetail(id){
+  var p = posts.find(function(x){ return x.id === id; });
+  if (!p) return;
+  document.getElementById('hd-title').textContent = p.topic;
+  document.getElementById('hd-sub').textContent = fmtDate(p.date, p.time) + ' \u00b7 ' + p.type + ' \u00b7 ' + p.template;
+
+  var errEl = document.getElementById('hd-error');
+  if (p.status === 'failed'){ errEl.hidden = false; errEl.textContent = p.error; } else { errEl.hidden = true; }
+
+  document.getElementById('hd-timeline').innerHTML = (p.logs || []).map(function(l){
+    return '<div class="timeline__row">' +
+      '<span class="timeline__phase">' + l.phase + '</span>' +
+      '<span class="timeline__time">' + l.time + '</span>' +
+      '<span class="' + (l.ok ? 'chip chip--approved' : 'chip chip--failed') + '" style="font-size:9.5px;">' + (l.ok ? 'ok' : 'gagal') + '</span>' +
+      '<span class="timeline__detail">' + (l.detail || '') + '</span>' +
+    '</div>';
+  }).join('');
+
+  var actions = '';
+  if (p.status === 'published'){
+    actions = '<a class="btn btn--ghost" href="' + p.igLink + '" target="_blank" rel="noopener">Lihat di Instagram</a>';
+  } else if (p.status === 'failed'){
+    actions = '<button class="btn btn--primary" onclick="retryPost(\'' + p.id + '\'); closeModal(\'modal-history-detail\')">Coba lagi</button>';
+  }
+  document.getElementById('hd-actions').innerHTML = actions;
+  openModal('modal-history-detail');
+}
+function retryPost(id){
+  var p = posts.find(function(x){ return x.id === id; });
+  p.status = 'review';
+  toast('Dijadwalkan untuk dicoba lagi, masuk ke Antrean.');
+  renderAll();
+}
+
+/* ============================================================
+   RENDER: Template
+   ============================================================ */
+function renderTemplates(){
+  var grid = document.getElementById('tpl-grid');
+  grid.innerHTML = TEMPLATES.map(function(t){
+    var usage = posts.filter(function(p){ return p.template === t.id; }).length;
+    var previewHTML = t.blocks.slice(0,4).map(function(b, i){
+      return miniSlideHTML(b, i+1, t.blocks.length);
+    }).join('');
+    var specsHTML = t.blocks.map(function(b){
+      var block = BLOCKS[b];
+      var fields = block.fields.map(function(f){ return '<b>' + f.name + '</b> \u2264' + f.limit; }).join(', ');
+      return '<div class="tpl-spec-row"><span class="tpl-spec-row__block">' + b + '</span><span class="tpl-spec-row__fields">' + fields + '</span></div>';
+    }).join('');
+    return '<div class="tpl-card">' +
+      '<div class="tpl-card__preview">' + previewHTML + '</div>' +
+      '<div class="tpl-card__body">' +
+        '<div class="tpl-card__head"><span class="tpl-card__name">' + t.name + '</span><span class="tpl-card__id">' + t.id + '</span></div>' +
+        '<p class="tpl-card__desc">' + t.desc + '</p>' +
+        '<div class="tpl-card__meta"><span class="badge">' + t.kind + '</span><span class="tpl-card__usage">dipakai di ' + usage + ' post</span></div>' +
+        '<div class="tpl-specs">' + specsHTML + '</div>' +
+        '<div class="tpl-card__actions"><button class="btn btn--ghost btn--sm" onclick="openTemplatePreview(\'' + t.id + '\')">Lihat contoh</button></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function openTemplatePreview(id){
+  var t = TEMPLATES.find(function(x){ return x.id === id; });
+  if (!t) return;
+  document.getElementById('tp-title').textContent = t.name;
+  document.getElementById('tp-sub').textContent = t.id + ' \u00b7 ' + t.kind + ' \u00b7 ' + t.blocks.length + ' slide';
+
+  document.getElementById('tp-strip').innerHTML = t.example.map(function(slide, i){
+    var block = BLOCKS[slide.block];
+    var inner = '';
+    if (slide.block === 'cover'){
+      inner = '<div class="slide__kicker">' + slide.eyebrow + '</div><div class="slide__h">' + slide.title + '</div><div class="slide__p">' + slide.subtitle + '</div>';
+    } else if (slide.block === 'point'){
+      inner = '<div class="slide__kicker">' + slide.index + '</div><div class="slide__h">' + slide.heading + '</div><div class="slide__p">' + slide.body + '</div>';
+    } else if (slide.block === 'quote'){
+      inner = '<div class="slide__h" style="font-size:15px;">&ldquo;' + slide.quote + '&rdquo;</div><div class="slide__p" style="margin-top:12px;">' + slide.attribution + '</div>';
+    } else if (slide.block === 'cta'){
+      inner = '<div class="slide__kicker">Ajakan</div><div class="slide__h">' + slide.headline + '</div><div class="slide__p">' + slide.handle + '</div>';
+    }
+    return '<figure class="slide"><div class="slide__frame"><div class="slide__canvas ' + block.canvasClass + '">' + inner + '</div></div>' +
+      '<figcaption class="slide__meta"><span>' + (i+1) + ' / ' + t.example.length + '</span><span>' + slide.block + '</span></figcaption></figure>';
+  }).join('');
+
+  var specsHTML = t.blocks.map(function(b){
+    var block = BLOCKS[b];
+    var fields = block.fields.map(function(f){ return '<b>' + f.name + '</b> \u2264' + f.limit + ' karakter'; }).join(' &middot; ');
+    return '<div class="tpl-spec-row"><span class="tpl-spec-row__block">' + b + '</span><span class="tpl-spec-row__fields">' + fields + '</span></div>';
+  }).join('');
+  document.getElementById('tp-specs').innerHTML = specsHTML;
+
+  openModal('modal-template-preview');
+}
+
+/* ============================================================
+   RENDER: Pengaturan
+   ============================================================ */
+function renderIGStatus(){
+  var ig = settings.ig;
+  document.getElementById('ig-handle').textContent = ig.handle;
+  var chip = document.getElementById('ig-chip');
+  var warning = document.getElementById('ig-warning');
+
+  if (!ig.connected){
+    chip.className = 'chip chip--failed';
+    chip.textContent = 'Token kedaluwarsa';
+    document.getElementById('ig-meta').textContent = 'Terhubung terakhir ' + ig.lastConnected;
+    warning.hidden = false;
+    warning.textContent = 'Token akses sudah tidak valid. Publikasi otomatis berhenti sampai disambungkan ulang.';
+  } else if (ig.expiresInDays <= 14){
+    chip.className = 'chip chip--review';
+    chip.textContent = 'Segera kedaluwarsa';
+    document.getElementById('ig-meta').textContent = 'Terhubung sejak ' + ig.lastConnected + ' \u00b7 token habis dalam ' + ig.expiresInDays + ' hari';
+    warning.hidden = false;
+    warning.textContent = 'Token akan kedaluwarsa dalam ' + ig.expiresInDays + ' hari. Sambungkan ulang sebelum itu supaya cron publish tidak berhenti mendadak.';
+  } else {
+    chip.className = 'chip chip--approved';
+    chip.textContent = 'Terhubung';
+    document.getElementById('ig-meta').textContent = 'Terhubung sejak ' + ig.lastConnected + ' \u00b7 token habis dalam ' + ig.expiresInDays + ' hari';
+    warning.hidden = true;
+  }
+}
+function reconnectIG(){
+  settings.ig.connected = true;
+  settings.ig.expiresInDays = 60;
+  settings.ig.lastConnected = 'hari ini';
+  toast('Akun Instagram tersambung ulang. Token baru berlaku 60 hari.');
+  renderIGStatus();
+}
+
+function renderUsersTable(){
+  document.getElementById('users-body').innerHTML = users.map(function(u){
+    var action = u.isSelf
+      ? '<span class="saved-tag">Ini kamu</span>'
+      : '<button class="btn btn--danger btn--sm" onclick="revokeUser(\'' + u.id + '\')">Cabut sesi</button>';
+    return '<tr>' +
+      '<td class="t-topic">' + u.username + '</td>' +
+      '<td class="hide-sm t-type">' + u.role + '</td>' +
+      '<td class="t-when">' + u.lastLogin + '</td>' +
+      '<td>' + action + '</td></tr>';
+  }).join('');
+}
+function revokeUser(id){
+  var u = users.find(function(x){ return x.id === id; });
+  toast('Sesi ' + u.username + ' dicabut. Perlu login ulang.');
+}
+
+function toggleNotifyFields(){
+  var channel = document.getElementById('settings-notify-channel').value;
+  document.getElementById('notify-email-field').hidden = channel !== 'email';
+  document.getElementById('notify-telegram-field').hidden = channel !== 'telegram';
+}
+
+function renderSettings(){
+  renderIGStatus();
+  renderUsersTable();
+  if (!settingsFormInit){
+    document.getElementById('settings-gen-time').value = settings.scheduleGenerate;
+    document.getElementById('settings-window-start').value = settings.scheduleWindowStart;
+    document.getElementById('settings-window-end').value = settings.scheduleWindowEnd;
+    document.getElementById('settings-notify-channel').value = settings.notifyChannel;
+    document.getElementById('settings-notify-email').value = settings.notifyEmail;
+    document.getElementById('settings-notify-telegram').value = settings.notifyTelegram;
+    document.getElementById('settings-notify-failure').checked = settings.notifyOnFailure;
+    document.getElementById('settings-notify-expiry').checked = settings.notifyOnTokenExpiry;
+    toggleNotifyFields();
+    settingsFormInit = true;
+  }
+}
+
+document.getElementById('settings-brand-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  settings.scheduleGenerate = document.getElementById('settings-gen-time').value;
+  settings.scheduleWindowStart = document.getElementById('settings-window-start').value;
+  settings.scheduleWindowEnd = document.getElementById('settings-window-end').value;
+  var tag = document.getElementById('brand-saved-tag');
+  tag.textContent = 'Tersimpan.';
+  toast('Brand voice dan jadwal disimpan.');
+  setTimeout(function(){ tag.textContent = ''; }, 2500);
+});
+
+document.getElementById('settings-notify-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  settings.notifyChannel = document.getElementById('settings-notify-channel').value;
+  settings.notifyEmail = document.getElementById('settings-notify-email').value;
+  settings.notifyTelegram = document.getElementById('settings-notify-telegram').value;
+  settings.notifyOnFailure = document.getElementById('settings-notify-failure').checked;
+  settings.notifyOnTokenExpiry = document.getElementById('settings-notify-expiry').checked;
+  var tag = document.getElementById('notify-saved-tag');
+  tag.textContent = 'Tersimpan.';
+  toast('Pengaturan notifikasi disimpan.');
+  setTimeout(function(){ tag.textContent = ''; }, 2500);
+});
+
+/* ============================================================
+   PERSONA: sub-tab
+   ============================================================ */
+function switchPersonaTab(tab){
+  document.querySelectorAll('[data-ptab-panel]').forEach(function(p){ p.hidden = (p.id !== 'ptab-' + tab); });
+  document.querySelectorAll('#persona-tabs .tab').forEach(function(t){ t.setAttribute('aria-pressed', t.dataset.ptab === tab); });
+}
+document.getElementById('persona-tabs').addEventListener('click', function(e){
+  var btn = e.target.closest('.tab');
+  if (!btn) return;
+  switchPersonaTab(btn.dataset.ptab);
+});
+
+/* ---------- DNA: sifat suara (tag list) ---------- */
+function renderDnaPillars(){
+  document.getElementById('dna-pillars-list').innerHTML = persona.dna.pillars.map(function(p){
+    return '<span class="chip-tag">' + p + '<button type="button" onclick="removePillar(\'' + p.replace(/'/g,"\\'") + '\')">&times;</button></span>';
+  }).join('') || '<span class="field__hint">Belum ada. Tambahkan minimal 3 sifat.</span>';
+}
+function addPillar(){
+  var input = document.getElementById('dna-pillar-input');
+  var val = input.value.trim();
+  if (!val) return;
+  if (persona.dna.pillars.indexOf(val) === -1) persona.dna.pillars.push(val);
+  input.value = '';
+  renderDnaPillars();
+}
+function removePillar(val){
+  persona.dna.pillars = persona.dna.pillars.filter(function(p){ return p !== val; });
+  renderDnaPillars();
+}
+
+/* ---------- DNA: contoh gaya bicara (pasangan do/don't, live-sync) ---------- */
+function renderDnaPairs(){
+  var list = persona.dna.pairs;
+  var html = list.map(function(p, i){
+    return '<div class="dnd-pair">' +
+      '<div><label class="dnd-pair__label dnd-pair__label--do">Begini gaya kita</label>' +
+        '<textarea oninput="syncPair(' + i + ',\'do\',this.value)">' + p.do + '</textarea></div>' +
+      '<div><label class="dnd-pair__label dnd-pair__label--dont">Bukan gaya kita</label>' +
+        '<textarea oninput="syncPair(' + i + ',\'dont\',this.value)">' + p.dont + '</textarea></div>' +
+      '<button type="button" class="btn btn--danger btn--sm dnd-pair__remove" onclick="removePair(' + i + ')">Hapus contoh</button>' +
+    '</div>';
+  }).join('');
+  document.getElementById('dna-pairs-list').innerHTML = html || '<p class="field__hint">Belum ada contoh.</p>';
+}
+function addPair(){ persona.dna.pairs.push({ do:'', dont:'' }); renderDnaPairs(); }
+function removePair(i){ persona.dna.pairs.splice(i, 1); renderDnaPairs(); }
+function syncPair(i, field, val){ persona.dna.pairs[i][field] = val; }
+
+/* ---------- Branding: bauran & ritme konten ---------- */
+function updateMix(){
+  var keys = ['edukasi', 'studiKasus', 'promosi', 'hiburan'];
+  var sum = 0;
+  keys.forEach(function(k){
+    var v = parseInt(document.getElementById('mix-' + k).value, 10) || 0;
+    sum += v;
+    document.getElementById('mix-bar-' + k).style.width = Math.min(v, 100) + '%';
+  });
+  var note = document.getElementById('mix-sum-note');
+  if (sum === 100){ note.textContent = 'Total 100% \u2014 pas.'; note.style.color = ''; }
+  else { note.textContent = 'Total ' + sum + '%, idealnya 100%.'; note.style.color = '#D4006E'; }
+}
+
+/* ---------- Visual: warna ---------- */
+var COLOR_KEYS = ['primary', 'secondary', 'accent', 'background', 'text'];
+function syncColorHex(key){
+  var hex = document.getElementById('color-' + key).value.toUpperCase();
+  document.getElementById('color-' + key + '-hex').value = hex;
+}
+function syncColorPicker(key){
+  var val = document.getElementById('color-' + key + '-hex').value.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) document.getElementById('color-' + key).value = val;
+}
+
+/* ---------- Segmentasi: CRUD ---------- */
+function renderSegments(){
+  var list = document.getElementById('segment-list');
+  if (!segments.length){
+    list.innerHTML = '<div class="empty"><strong>Belum ada segmen</strong><p>Tambahkan minimal satu segmen supaya rencana konten tahu sedang menulis untuk siapa.</p></div>';
+    return;
+  }
+  list.innerHTML = segments.map(function(s){
+    return '<div class="segment-card">' +
+      '<div class="segment-card__body">' +
+        '<div class="segment-card__name">' + s.name + ' <span class="badge">' + s.tier + '</span></div>' +
+        '<div class="segment-card__meta">' + s.desc + '<br><b>Pain point:</b> ' + s.painPoint + '<br><b>Kebutuhan:</b> ' + s.need + '</div>' +
+      '</div>' +
+      '<div class="segment-card__actions">' +
+        '<button class="btn btn--ghost btn--sm" onclick="openSegmentModal(\'' + s.id + '\')">Ubah</button>' +
+        '<button class="btn btn--danger btn--sm" onclick="deleteSegment(\'' + s.id + '\')">Hapus</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+function openSegmentModal(id){
+  var isEdit = !!id;
+  var s = isEdit ? segments.find(function(x){ return x.id === id; }) : null;
+  document.getElementById('segment-modal-title').textContent = isEdit ? 'Ubah segmen' : 'Tambah segmen';
+  document.getElementById('segment-id').value = id || '';
+  document.getElementById('segment-name').value = s ? s.name : '';
+  document.getElementById('segment-tier').value = s ? s.tier : 'Sekunder';
+  document.getElementById('segment-desc').value = s ? s.desc : '';
+  document.getElementById('segment-pain').value = s ? s.painPoint : '';
+  document.getElementById('segment-need').value = s ? s.need : '';
+  openModal('modal-segment');
+}
+function deleteSegment(id){
+  segments = segments.filter(function(s){ return s.id !== id; });
+  renderSegments();
+  toast('Segmen dihapus.');
+}
+document.getElementById('segment-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var id = document.getElementById('segment-id').value;
+  var data = {
+    name: document.getElementById('segment-name').value.trim(),
+    tier: document.getElementById('segment-tier').value,
+    desc: document.getElementById('segment-desc').value.trim(),
+    painPoint: document.getElementById('segment-pain').value.trim(),
+    need: document.getElementById('segment-need').value.trim()
+  };
+  if (!data.name){ toast('Nama segmen wajib diisi.'); return; }
+  if (id){
+    Object.assign(segments.find(function(s){ return s.id === id; }), data);
+    toast('Segmen diperbarui.');
+  } else {
+    data.id = 'seg' + Date.now();
+    segments.push(data);
+    toast('Segmen baru ditambahkan.');
+  }
+  closeModal('modal-segment');
+  renderSegments();
+});
+
+/* ---------- Segmentasi: import/export Excel ---------- */
+function downloadSegmentTemplate(){
+  var rows = [
+    ['Nama Segmen', 'Prioritas', 'Deskripsi', 'Pain Point', 'Kebutuhan'],
+    ['Freelancer pemula 0-2 tahun', 'Utama', 'Baru lepas kerja kantoran', 'Takut pasang harga', 'Contoh angka konkret']
+  ];
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Segmentasi');
+  XLSX.writeFile(wb, 'template-segmentasi-postpress.xlsx');
+}
+function importSegmentExcel(event){
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      var added = 0;
+      rows.forEach(function(r){
+        var name = String(r['Nama Segmen'] || '').trim();
+        if (!name) return;
+        segments.push({
+          id: 'seg' + Date.now() + Math.random().toString(16).slice(2),
+          name: name,
+          tier: String(r['Prioritas'] || 'Sekunder').trim() || 'Sekunder',
+          desc: String(r['Deskripsi'] || ''),
+          painPoint: String(r['Pain Point'] || ''),
+          need: String(r['Kebutuhan'] || '')
+        });
+        added++;
+      });
+      renderSegments();
+      toast(added ? added + ' segmen diimpor dari Excel.' : 'Tidak ada baris valid di file itu. Cek kolom "Nama Segmen".');
+    } catch (err){
+      toast('Gagal membaca file. Pastikan formatnya sesuai template.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ---------- Kata Kunci: tag list generik untuk 4 kategori ---------- */
+var KEYWORD_LABELS = { topik:'kata kunci topik', hashtag:'hashtag', larangan:'kata terlarang', cta:'CTA' };
+function renderKeywordList(cat){
+  var el = document.getElementById('kw-list-' + cat);
+  el.innerHTML = keywords[cat].map(function(v){
+    return '<span class="chip-tag">' + v + '<button type="button" onclick="removeKeyword(\'' + cat + '\',\'' + v.replace(/'/g,"\\'") + '\')">&times;</button></span>';
+  }).join('') || '<span class="field__hint">Belum ada ' + KEYWORD_LABELS[cat] + '.</span>';
+}
+function renderKeywordLists(){ Object.keys(keywords).forEach(renderKeywordList); }
+function addKeyword(cat){
+  var input = document.getElementById('kw-input-' + cat);
+  var val = input.value.trim();
+  if (!val) return;
+  if (keywords[cat].indexOf(val) === -1) keywords[cat].push(val);
+  input.value = '';
+  renderKeywordList(cat);
+}
+function removeKeyword(cat, val){
+  keywords[cat] = keywords[cat].filter(function(v){ return v !== val; });
+  renderKeywordList(cat);
+}
+
+/* ---------- Kata Kunci: import/export Excel (multi-sheet) ---------- */
+var KEYWORD_SHEETS = { 'Kata Kunci Topik':'topik', 'Hashtag':'hashtag', 'Kata Terlarang':'larangan', 'Bank CTA':'cta' };
+function downloadKeywordTemplate(){
+  var wb = XLSX.utils.book_new();
+  Object.keys(KEYWORD_SHEETS).forEach(function(sheetName){
+    var cat = KEYWORD_SHEETS[sheetName];
+    var header = sheetName.replace('Kata Kunci ', '');
+    var rows = [[header]].concat(keywords[cat].map(function(v){ return [v]; }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), sheetName);
+  });
+  XLSX.writeFile(wb, 'template-kata-kunci-postpress.xlsx');
+}
+function importKeywordExcel(event){
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+      var totalAdded = 0;
+      var sheetsFound = 0;
+      Object.keys(KEYWORD_SHEETS).forEach(function(sheetName){
+        var cat = KEYWORD_SHEETS[sheetName];
+        var ws = wb.Sheets[sheetName];
+        if (!ws) return;
+        sheetsFound++;
+        var rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+        rows.slice(1).forEach(function(row){
+          var val = String(row[0] || '').trim();
+          if (val && keywords[cat].indexOf(val) === -1){ keywords[cat].push(val); totalAdded++; }
+        });
+      });
+      renderKeywordLists();
+      if (!sheetsFound) toast('Tidak ada sheet yang cocok. Pastikan nama sheet sesuai template.');
+      else toast(totalAdded + ' kata kunci baru ditambahkan dari Excel.');
+    } catch (err){
+      toast('Gagal membaca file. Pastikan formatnya sesuai template.');
+    }
+    event.target.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ---------- Persona: init & save ---------- */
+function renderPersona(){
+  renderDnaPillars();
+  renderDnaPairs();
+  renderSegments();
+  renderKeywordLists();
+
+  if (!personaFormInit){
+    var b = persona.branding;
+    document.getElementById('pb-name').value = b.name;
+    document.getElementById('pb-tagline').value = b.tagline;
+    document.getElementById('pb-positioning').value = b.positioning;
+    document.getElementById('pb-dos').value = b.dos;
+    document.getElementById('pb-donts').value = b.donts;
+    document.getElementById('mix-edukasi').value = b.mix.edukasi;
+    document.getElementById('mix-studiKasus').value = b.mix.studiKasus;
+    document.getElementById('mix-promosi').value = b.mix.promosi;
+    document.getElementById('mix-hiburan').value = b.mix.hiburan;
+    document.getElementById('pb-frequency').value = b.frequency;
+    updateMix();
+
+    var d = persona.dna;
+    document.getElementById('dna-values').value = d.values;
+    document.getElementById('dna-sapaan').value = d.sapaan;
+    document.getElementById('dna-istilah').value = d.istilahAsing;
+    document.getElementById('dna-format-tanggal').value = d.formatTanggal;
+    document.getElementById('dna-format-angka').value = d.formatAngka;
+    document.getElementById('dna-gaya-judul').value = d.gayaJudul;
+
+    var v = persona.visual;
+    COLOR_KEYS.forEach(function(k){
+      document.getElementById('color-' + k).value = v.colors[k];
+      document.getElementById('color-' + k + '-hex').value = v.colors[k].toUpperCase();
+    });
+    document.getElementById('font-display').value = v.fonts.display;
+    document.getElementById('font-body').value = v.fonts.body;
+    document.getElementById('font-mono').value = v.fonts.mono;
+    document.getElementById('visual-larangan').value = v.larangan;
+
+    personaFormInit = true;
+  }
+}
+
+document.getElementById('ptab-branding').addEventListener('submit', function(e){
+  e.preventDefault();
+  var b = persona.branding;
+  b.name = document.getElementById('pb-name').value;
+  b.tagline = document.getElementById('pb-tagline').value;
+  b.positioning = document.getElementById('pb-positioning').value;
+  b.dos = document.getElementById('pb-dos').value;
+  b.donts = document.getElementById('pb-donts').value;
+  b.mix.edukasi = parseInt(document.getElementById('mix-edukasi').value, 10) || 0;
+  b.mix.studiKasus = parseInt(document.getElementById('mix-studiKasus').value, 10) || 0;
+  b.mix.promosi = parseInt(document.getElementById('mix-promosi').value, 10) || 0;
+  b.mix.hiburan = parseInt(document.getElementById('mix-hiburan').value, 10) || 0;
+  b.frequency = parseInt(document.getElementById('pb-frequency').value, 10) || 0;
+  var tag = document.getElementById('branding-saved-tag');
+  tag.textContent = 'Tersimpan.';
+  toast('Branding disimpan.');
+  setTimeout(function(){ tag.textContent = ''; }, 2500);
+});
+
+document.getElementById('ptab-dna').addEventListener('submit', function(e){
+  e.preventDefault();
+  var d = persona.dna;
+  d.values = document.getElementById('dna-values').value;
+  d.sapaan = document.getElementById('dna-sapaan').value;
+  d.istilahAsing = document.getElementById('dna-istilah').value;
+  d.formatTanggal = document.getElementById('dna-format-tanggal').value;
+  d.formatAngka = document.getElementById('dna-format-angka').value;
+  d.gayaJudul = document.getElementById('dna-gaya-judul').value;
+  var tag = document.getElementById('dna-saved-tag');
+  tag.textContent = 'Tersimpan.';
+  toast('DNA disimpan.');
+  setTimeout(function(){ tag.textContent = ''; }, 2500);
+});
+
+document.getElementById('ptab-visual').addEventListener('submit', function(e){
+  e.preventDefault();
+  var v = persona.visual;
+  COLOR_KEYS.forEach(function(k){ v.colors[k] = document.getElementById('color-' + k + '-hex').value; });
+  v.fonts.display = document.getElementById('font-display').value;
+  v.fonts.body = document.getElementById('font-body').value;
+  v.fonts.mono = document.getElementById('font-mono').value;
+  v.larangan = document.getElementById('visual-larangan').value;
+  var tag = document.getElementById('visual-saved-tag');
+  tag.textContent = 'Tersimpan.';
+  toast('Visual disimpan.');
+  setTimeout(function(){ tag.textContent = ''; }, 2500);
+});
+
+/* ============================================================
+   MODAL & POST BARU
+   ============================================================ */
+function openModal(id){ document.getElementById(id).hidden = false; }
+function closeModal(id){ document.getElementById(id).hidden = true; }
+document.querySelectorAll('.modal-backdrop').forEach(function(b){
+  b.addEventListener('click', function(e){ if (e.target === b) b.hidden = true; });
+});
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape') return;
+  document.querySelectorAll('.modal-backdrop').forEach(function(b){ b.hidden = true; });
+});
+
+document.getElementById('post-form').addEventListener('submit', function(e){
+  e.preventDefault();
+  var date = document.getElementById('post-date').value;
+  var topic = document.getElementById('post-topic').value.trim();
+  if (!date || !topic){ toast('Tanggal dan topik wajib diisi.'); return; }
+  posts.push({
+    id: 'post' + Date.now(),
+    date: date,
+    time: document.getElementById('post-time').value || '19:00',
+    type: document.getElementById('post-type').value,
+    topic: topic,
+    status: 'draft',
+    template: document.getElementById('post-template').value,
+    slideKinds: ['cover'],
+    caption: 'Belum digenerate.',
+    tags: ''
+  });
+  closeModal('modal-post');
+  document.getElementById('post-form').reset();
+  document.getElementById('post-time').value = '19:00';
+  toast('Draf baru ditambahkan ke Antrean.');
+  switchView('queue');
+});
+
+/* ============================================================
+   NAVIGASI VIEW
+   ============================================================ */
+var VIEW_META = {
+  today:    { title:'Jumat, 31 Juli 2026', action:'Buat post baru' },
+  persona:  { title:'Persona', action:null },
+  plan:     { title:'Rencana konten', action:'Tambah tema' },
+  queue:    { title:'Antrean', action:'Buat post baru' },
+  history:  { title:'Riwayat', action:null },
+  template: { title:'Template', action:null },
+  settings: { title:'Pengaturan', action:null }
+};
+function switchView(view){
+  ['today','persona','plan','queue','history','template','settings'].forEach(function(v){
+    document.getElementById('view-' + v).hidden = (v !== view);
+  });
+  Array.from(document.querySelectorAll('#rail-nav .rail__link')).forEach(function(link){
+    if (link.dataset.view === view) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  var meta = VIEW_META[view];
+  document.getElementById('topbar-title').textContent = meta.title;
+  var actionBtn = document.getElementById('topbar-action');
+  if (meta.action){ actionBtn.hidden = false; actionBtn.textContent = meta.action; }
+  else { actionBtn.hidden = true; }
+}
+document.getElementById('topbar-action').addEventListener('click', function(){
+  var current = document.querySelector('#rail-nav .rail__link[aria-current="page"]').dataset.view;
+  if (current === 'plan') openPlanModal();
+  else openModal('modal-post');
+});
+document.getElementById('rail-nav').addEventListener('click', function(e){
+  var btn = e.target.closest('.rail__link');
+  if (!btn) return;
+  switchView(btn.dataset.view);
+});
+
+function updateBadges(){
+  var reviewCount = posts.filter(function(p){ return p.status === 'review'; }).length;
+  var queueCount = posts.filter(function(p){ return ['review','approved','draft'].indexOf(p.status) > -1; }).length;
+  document.getElementById('badge-today').textContent = reviewCount;
+  document.getElementById('badge-queue').textContent = queueCount;
+}
+function renderAll(){
+  renderTodayPreview();
+  renderPersona();
+  renderPlan();
+  renderQueue();
+  renderHistory();
+  renderTemplates();
+  renderSettings();
+  updateBadges();
+}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+(function(){
+  var login = document.getElementById('view-login');
+  var app = document.getElementById('view-app');
+  var form = document.getElementById('login-form');
+  var error = document.getElementById('login-error');
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var u = document.getElementById('username').value.trim();
+    var p = document.getElementById('password').value;
+    if (!u || !p){
+      error.hidden = false;
+      (u ? document.getElementById('password') : document.getElementById('username')).focus();
+      return;
+    }
+    error.hidden = true;
+    login.hidden = true;
+    app.hidden = false;
+    window.scrollTo(0,0);
+    renderAll();
+  });
+
+  document.getElementById('logout').addEventListener('click', function(){
+    app.hidden = true;
+    login.hidden = false;
+    form.reset();
+    window.scrollTo(0,0);
+  });
+})();
+</script>
+</body>
+</html>
