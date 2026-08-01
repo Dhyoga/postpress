@@ -1,6 +1,8 @@
 // Deskripsi & contoh isi tiap template Satori — teks presentasi murni untuk halaman
 // Template, bukan data yang berasal dari database. Id/batas karakter sungguhan tetap
 // satu sumber kebenaran di lib/render/registry.ts (lihat /api/templates).
+import { EXAMPLE_IG_HANDLE } from "@/lib/instagram/constants";
+
 export type TemplateInfo = {
   desc: string;
   /** Kelas CSS pratinjau. Belum ada styling khusus untuk `quote`, jadi dipinjam dari `point`. */
@@ -32,7 +34,7 @@ export const TEMPLATE_INFO: Record<string, TemplateInfo> = {
     canvasClass: "slide__canvas--point",
     example: {
       quote: "Kalau kalender kamu penuh tiga bulan ke depan, itu sinyal waktunya naikin harga.",
-      attribution: "@kelasfreelance.id",
+      attribution: EXAMPLE_IG_HANDLE,
     },
   },
   cta: {
@@ -40,7 +42,7 @@ export const TEMPLATE_INFO: Record<string, TemplateInfo> = {
     canvasClass: "slide__canvas--cta",
     example: {
       headline: "Mana yang paling sering kamu lakukan?",
-      handle: "@kelasfreelance.id",
+      handle: EXAMPLE_IG_HANDLE,
     },
   },
 };

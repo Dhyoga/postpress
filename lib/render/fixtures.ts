@@ -1,4 +1,5 @@
 import type { SlideContent } from "./types";
+import { EXAMPLE_IG_HANDLE } from "@/lib/instagram/constants";
 
 /** Konten contoh persis di batas karakter maksimum tiap slot (bukan teks pendek
  * yang nyaman) — dipakai CLI `render:preview` dan snapshot test, supaya teks
@@ -20,7 +21,7 @@ export const MAX_LENGTH_FIXTURES: Record<string, SlideContent> = {
   },
   cta: {
     headline: "Simpan panduan ini, share ke rekan freelancer kamu",
-    handle: "@kelasfreelance.id",
+    handle: EXAMPLE_IG_HANDLE,
   },
 };
 

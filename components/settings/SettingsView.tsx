@@ -21,18 +21,32 @@ type SettingsSnapshot = {
   accounts: Array<{ id: string; handle: string; igUserId: string }>;
 };
 
-type IgSettings = {
-  connected: boolean;
+type IgAccountView = {
+  id: string;
   handle: string;
-  lastConnected?: string;
-  expiresInDays?: number | null;
+  igUserId: string;
+  tokenExpiresAt: string | null;
+  isActive: boolean;
 };
+
+type ConnectIgBody = {
+  accountId?: string;
+  handle: string;
+  igUserId: string;
+  accessToken: string;
+  neverExpires: boolean;
+  expiresInDays?: number;
+};
+
+const EMPTY_CONNECT_FORM = { accountId: undefined as string | undefined, handle: "", igUserId: "", accessToken: "", neverExpires: true, expiresInDays: 60 };
 
 export function SettingsView() {
   const toast = useToast();
   const { data: settings, loading, refetch } = useApi<SettingsSnapshot>("/api/settings");
   const saveMutation = usePostMutation<SettingsSnapshot, SettingsSnapshot>();
-  const reconnectMutation = usePostMutation<{ accountId: string }, { accountId: string }>();
+  const { data: igData, refetch: refetchIgAccounts } = useApi<{ accounts: IgAccountView[] }>("/api/settings/ig-accounts");
+  const connectMutation = usePostMutation<ConnectIgBody, { account: IgAccountView }>();
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
 
   const [scheduleGenerate, setScheduleGenerate] = useState("06:00");
   const [scheduleWindowStart, setScheduleWindowStart] = useState("08:00");
@@ -48,8 +62,13 @@ export function SettingsView() {
   const [notifySavedTag, setNotifySavedTag] = useState("");
   const [notifyErrors, setNotifyErrors] = useState<{ email?: string; telegram?: string }>({});
 
-  const [ig, setIg] = useState<IgSettings>({ connected: false, handle: "@kelasfreelance.id", lastConnected: "-", expiresInDays: null });
+  const [igFormOpen, setIgFormOpen] = useState(false);
+  const [igForm, setIgForm] = useState(EMPTY_CONNECT_FORM);
+  const [igFormErrors, setIgFormErrors] = useState<{ handle?: string; igUserId?: string; accessToken?: string }>({});
+
   const users = settings?.users ?? [];
+  const igAccounts = igData?.accounts ?? [];
+  const activeAccount = igAccounts.find((a) => a.isActive) ?? null;
 
   useEffect(() => {
     if (settings?.schedule) {
@@ -63,20 +82,63 @@ export function SettingsView() {
     }
   }, [settings]);
 
-  function handleReconnect() {
-    const account = settings?.accounts?.[0];
-    if (!account) {
-      toast("Belum ada akun IG.");
-      return;
-    }
-    reconnectMutation.mutate("/api/settings/reconnect", { accountId: account.id }).then((res) => {
-      if (res) {
-        setIg((prev) => ({ ...prev, connected: true, expiresInDays: 60, lastConnected: "hari ini" }));
-        toast("Akun Instagram tersambung ulang. Token baru berlaku 60 hari.");
+  function openConnectForm(account?: IgAccountView) {
+    setIgFormErrors({});
+    setIgForm(
+      account
+        ? { accountId: account.id, handle: account.handle, igUserId: account.igUserId, accessToken: "", neverExpires: true, expiresInDays: 60 }
+        : EMPTY_CONNECT_FORM,
+    );
+    setIgFormOpen(true);
+  }
+
+  function handleIgFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const nextErrors: { handle?: string; igUserId?: string; accessToken?: string } = {};
+    if (!igForm.handle.trim()) nextErrors.handle = "Handle Instagram wajib diisi.";
+    if (!igForm.igUserId.trim()) nextErrors.igUserId = "IG User ID wajib diisi.";
+    if (igForm.accessToken.trim().length < 10) nextErrors.accessToken = "Token akses tidak valid.";
+    setIgFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    connectMutation
+      .mutate("/api/settings/connect-ig", {
+        accountId: igForm.accountId,
+        handle: igForm.handle.trim(),
+        igUserId: igForm.igUserId.trim(),
+        accessToken: igForm.accessToken.trim(),
+        neverExpires: igForm.neverExpires,
+        expiresInDays: igForm.neverExpires ? undefined : igForm.expiresInDays,
+      })
+      .then((res) => {
+        if (res) {
+          toast(`Akun @${res.account.handle} tersambung.`);
+          setIgFormOpen(false);
+          setIgForm(EMPTY_CONNECT_FORM);
+          refetchIgAccounts();
+        } else {
+          toast("Gagal menyambungkan akun Instagram.");
+        }
+      });
+  }
+
+  async function handleDisconnect(account: IgAccountView) {
+    setDisconnecting(account.id);
+    try {
+      const res = await fetch("/api/settings/connect-ig", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ accountId: account.id }),
+      });
+      if (res.ok) {
+        toast(`Akun @${account.handle} diputuskan.`);
+        refetchIgAccounts();
       } else {
-        toast("Gagal reconnect akun.");
+        toast("Gagal memutuskan koneksi akun.");
       }
-    });
+    } finally {
+      setDisconnecting(null);
+    }
   }
 
   function handleBrandSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -132,10 +194,22 @@ export function SettingsView() {
     toast(`Sesi ${user.username} dicabut. Perlu login ulang.`);
   }
 
-  const igChipClass = !ig.connected ? "chip chip--failed" : (ig.expiresInDays ?? 999) <= 14 ? "chip chip--review" : "chip chip--approved";
-  const igChipLabel = !ig.connected ? "Token kedaluwarsa" : (ig.expiresInDays ?? 999) <= 14 ? "Segera kedaluwarsa" : "Terhubung";
-  const igMeta = !ig.connected ? `Terhubung terakhir ${ig.lastConnected}` : `Terhubung sejak ${ig.lastConnected} · token habis dalam ${ig.expiresInDays} hari`;
-  const igWarning = !ig.connected ? "Token akses sudah tidak valid. Publikasi otomatis berhenti sampai disambungkan ulang." : (ig.expiresInDays ?? 999) <= 14 ? `Token akan kedaluwarsa dalam ${ig.expiresInDays} hari. Sambungkan ulang sebelum itu supaya publikasi otomatis tidak berhenti mendadak.` : null;
+  const expiresInDays = activeAccount?.tokenExpiresAt
+    ? Math.floor((new Date(activeAccount.tokenExpiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+    : null;
+  const igChipClass = !activeAccount ? "chip chip--failed" : (expiresInDays ?? 999) <= 14 ? "chip chip--review" : "chip chip--approved";
+  const igChipLabel = !activeAccount ? "Belum tersambung" : (expiresInDays ?? 999) <= 14 ? "Segera kedaluwarsa" : "Terhubung";
+  const igMeta = !activeAccount
+    ? "Belum ada akun Instagram yang tersambung."
+    : activeAccount.tokenExpiresAt
+      ? `IG User ID ${activeAccount.igUserId} · token habis dalam ${expiresInDays} hari`
+      : `IG User ID ${activeAccount.igUserId} · token tidak pernah kedaluwarsa (System User token)`;
+  const igWarning = !activeAccount
+    ? "Belum ada akun Instagram yang tersambung. Publikasi otomatis tidak akan berjalan sampai satu akun disambungkan."
+    : (expiresInDays ?? 999) <= 14
+      ? `Token akan kedaluwarsa dalam ${expiresInDays} hari. Sambungkan ulang sebelum itu supaya publikasi otomatis tidak berhenti mendadak.`
+      : null;
+  const disconnectedAccounts = igAccounts.filter((a) => !a.isActive);
 
   return (
     <section className="view">
@@ -159,17 +233,120 @@ export function SettingsView() {
           </p>
           <div className="status-row" style={{ marginTop: 16 }}>
             <div>
-              <div className="status-row__label">{ig.handle}</div>
+              <div className="status-row__label">{activeAccount ? `@${activeAccount.handle}` : "Tidak ada akun"}</div>
               <div className="status-row__meta">{igMeta}</div>
             </div>
             <span className={igChipClass}>{igChipLabel}</span>
           </div>
           {igWarning ? <p className="alert">{igWarning}</p> : null}
-          <div className="settings-card__foot">
-            <button type="button" className="btn btn--ghost btn--sm" onClick={handleReconnect}>
-              Sambungkan ulang
-            </button>
-          </div>
+
+          {disconnectedAccounts.length > 0 ? (
+            <div className="table-scroll" style={{ marginTop: 12 }}>
+              {disconnectedAccounts.map((a) => (
+                <div key={a.id} className="status-row">
+                  <div>
+                    <div className="status-row__label">@{a.handle}</div>
+                    <div className="status-row__meta">Terputus · IG User ID {a.igUserId}</div>
+                  </div>
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => openConnectForm(a)}>
+                    Sambungkan ulang
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {igFormOpen ? (
+            <form className="field" style={{ marginTop: 16 }} onSubmit={handleIgFormSubmit} noValidate>
+              <div className="field">
+                <label htmlFor="ig-handle">Handle Instagram</label>
+                <input
+                  type="text"
+                  id="ig-handle"
+                  placeholder="namaakun"
+                  value={igForm.handle}
+                  className={igFormErrors.handle ? "border-magenta" : undefined}
+                  onChange={(e) => setIgForm((p) => ({ ...p, handle: e.target.value }))}
+                />
+                <FieldError message={igFormErrors.handle} />
+              </div>
+              <div className="field">
+                <label htmlFor="ig-user-id">IG User ID (Business Account)</label>
+                <input
+                  type="text"
+                  id="ig-user-id"
+                  placeholder="17841400..."
+                  value={igForm.igUserId}
+                  className={igFormErrors.igUserId ? "border-magenta" : undefined}
+                  onChange={(e) => setIgForm((p) => ({ ...p, igUserId: e.target.value }))}
+                />
+                <FieldError message={igFormErrors.igUserId} />
+              </div>
+              <div className="field">
+                <label htmlFor="ig-token">Token akses</label>
+                <input
+                  type="password"
+                  id="ig-token"
+                  placeholder="Token System User atau long-lived user token"
+                  value={igForm.accessToken}
+                  className={igFormErrors.accessToken ? "border-magenta" : undefined}
+                  onChange={(e) => setIgForm((p) => ({ ...p, accessToken: e.target.value }))}
+                />
+                <FieldError message={igFormErrors.accessToken} />
+              </div>
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={igForm.neverExpires}
+                  onChange={(e) => setIgForm((p) => ({ ...p, neverExpires: e.target.checked }))}
+                />
+                {" "}Token System User (tidak pernah kedaluwarsa)
+              </label>
+              {!igForm.neverExpires ? (
+                <div className="field">
+                  <label htmlFor="ig-expires">Token berlaku (hari)</label>
+                  <input
+                    type="number"
+                    id="ig-expires"
+                    min={1}
+                    max={60}
+                    value={igForm.expiresInDays}
+                    onChange={(e) => setIgForm((p) => ({ ...p, expiresInDays: Number(e.target.value) }))}
+                  />
+                </div>
+              ) : null}
+              <div className="settings-card__foot">
+                <button type="submit" className="btn btn--primary btn--sm" disabled={connectMutation.loading}>
+                  {connectMutation.loading ? "Menyambungkan…" : "Simpan"}
+                </button>
+                <button type="button" className="btn btn--ghost btn--sm" onClick={() => setIgFormOpen(false)}>
+                  Batal
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="settings-card__foot">
+              {activeAccount ? (
+                <>
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => openConnectForm(activeAccount)}>
+                    Sambungkan ulang
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--danger btn--sm"
+                    onClick={() => handleDisconnect(activeAccount)}
+                    disabled={disconnecting === activeAccount.id}
+                  >
+                    {disconnecting === activeAccount.id ? "Memutuskan…" : "Putuskan koneksi"}
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn btn--primary btn--sm" onClick={() => openConnectForm()}>
+                  Hubungkan akun Instagram
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <form className="settings-card" onSubmit={handleBrandSubmit} noValidate>

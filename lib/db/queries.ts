@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { eq, desc, and, lte } from "drizzle-orm";
+import { eq, ne, desc, and, lte } from "drizzle-orm";
 import {
   users,
   sessions,
@@ -173,6 +173,17 @@ export async function deleteContentPlan(id: string) {
 export async function listActiveAccounts() {
   return db.query.igAccounts.findMany({
     where: eq(igAccounts.isActive, true),
+  });
+}
+
+/** Dipakai halaman Pengaturan — beda dari listActiveAccounts() karena UI perlu
+ * menampilkan akun yang sudah diputuskan juga (supaya bisa disambungkan ulang),
+ * bukan cuma yang aktif. Placeholder dari getOrCreateDefaultAccount() (belum
+ * pernah disambungkan sungguhan) sengaja disembunyikan dari daftar ini. */
+export async function listAllAccounts() {
+  return db.query.igAccounts.findMany({
+    where: ne(igAccounts.igUserId, "pending"),
+    orderBy: [desc(igAccounts.isActive), igAccounts.handle],
   });
 }
 
