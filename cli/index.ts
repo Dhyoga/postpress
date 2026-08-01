@@ -1,6 +1,16 @@
+import { existsSync } from "node:fs";
 import { userCreate } from "./commands/user-create";
 import { renderPreview } from "./commands/render-preview";
 import { publishDryRun } from "./commands/publish-dry-run";
+
+// `next dev`/`next build` memuat `.env` otomatis lewat dotenv bawaan Next.js;
+// CLI ini jalan di luar Next, jadi muat manual pakai loader bawaan Node
+// (stabil sejak Node 20.6) supaya variabel di .env tidak perlu di-export ulang
+// tiap jalankan `pnpm cli`. Variabel yang sudah ada di shell env tetap menang
+// (loadEnvFile tidak menimpa yang sudah diset).
+if (existsSync(".env")) {
+  process.loadEnvFile(".env");
+}
 
 const [, , command, ...rest] = process.argv;
 
