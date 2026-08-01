@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePosts } from "@/components/posts/PostsProvider";
 import { NewPostModal } from "@/components/posts/NewPostModal";
 import { useRegisterTopbarAction } from "@/components/dashboard/TopbarAction";
@@ -30,7 +30,8 @@ export function QueueView() {
   const [postModalOpen, setPostModalOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  useRegisterTopbarAction("Buat post baru", () => setPostModalOpen(true));
+  const openPostModal = useCallback(() => setPostModalOpen(true), []);
+  useRegisterTopbarAction("Buat post baru", openPostModal);
 
   useEffect(() => {
     const openId = searchParams.get("open");
@@ -98,7 +99,7 @@ export function QueueView() {
                     <button
                       type="button"
                       className="btn btn--primary btn--sm"
-                      onClick={() => setPostModalOpen(true)}
+                      onClick={openPostModal}
                     >
                       Buat post baru
                     </button>

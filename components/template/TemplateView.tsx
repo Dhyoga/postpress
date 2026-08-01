@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 import { usePosts } from "@/components/posts/PostsProvider";
-import { MiniSlide } from "@/components/slides/MiniSlide";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
-import { useMockQuery } from "@/lib/hooks/use-mock-query";
-import { BLOCKS, TEMPLATES } from "@/lib/mock/templates";
-import type { TemplateId } from "@/lib/mock/types";
+import { useApi } from "@/lib/hooks/use-api";
+import { getTemplateInfo } from "./template-info";
 import { TemplateDetailModal } from "./TemplateDetailModal";
+
+export type TemplateRow = { id: string; name: string; slots: Record<string, number> };
 
 export function TemplateView() {
   const { posts, loading: postsLoading } = usePosts();
-  const { data: templates, loading: templatesLoading } = useMockQuery(TEMPLATES);
-  const [previewId, setPreviewId] = useState<TemplateId | null>(null);
+  const { data, loading: templatesLoading } = useApi<{ templates: TemplateRow[] }>("/api/templates");
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const loading = postsLoading || templatesLoading;
+  const templates = data?.templates ?? [];
 
   return (
     <section className="view">
@@ -21,8 +22,8 @@ export function TemplateView() {
         <div>
           <h1>Template</h1>
           <p>
-            Susunan slide yang dipakai saat merender. LLM cuma mengisi teks di slot ini &mdash;
-            layoutnya sendiri sudah dikunci di kode.
+            Slot teks tiap template yang dipakai saat merender. LLM cuma mengisi teks di slot
+            ini &mdash; layoutnya sendiri sudah dikunci di kode.
           </p>
         </div>
       </div>
@@ -33,7 +34,9 @@ export function TemplateView() {
           <b>Kenapa tidak bisa diedit di sini:</b> Satori cuma mendukung subset CSS terbatas
           (flexbox saja, tanpa grid). Template yang digenerate bebas gampang jebol, jadi tiap
           layout ditulis dan diuji manual di kode. Untuk mengubah struktur, minta developer
-          mengubahnya di <code>lib/render/templates/</code>.
+          mengubahnya di <code>lib/render/templates/</code>. Post carousel selalu memakai
+          kerangka tetap cover &rarr; point &rarr; point &rarr; point &rarr; cta; post single
+          memakai salah satu template di bawah berdiri sendiri.
         </span>
       </div>
 
@@ -50,59 +53,58 @@ export function TemplateView() {
               </div>
             ))
           : templates.map((t) => {
-          const usage = posts.filter((p) => p.template === t.id).length;
-          const previewBlocks = t.blocks.slice(0, 4);
-          return (
-            <div className="tpl-card" key={t.id}>
-              <div className="tpl-card__preview">
-                {previewBlocks.map((b, i) => (
-                  <MiniSlide key={i} kind={b} index={i + 1} total={t.blocks.length} />
-                ))}
-              </div>
-              <div className="tpl-card__body">
-                <div className="tpl-card__head">
-                  <span className="tpl-card__name">{t.name}</span>
-                  <span className="tpl-card__id">{t.id}</span>
-                </div>
-                <p className="tpl-card__desc">{t.desc}</p>
-                <div className="tpl-card__meta">
-                  <span className="badge">{t.kind}</span>
-                  <span className="tpl-card__usage">dipakai di {usage} post</span>
-                </div>
-                <div className="tpl-specs">
-                  {t.blocks.map((b, i) => {
-                    const block = BLOCKS[b];
-                    return (
-                      <div className="tpl-spec-row" key={i}>
-                        <span className="tpl-spec-row__block">{b}</span>
+              const info = getTemplateInfo(t.id);
+              const usage = posts.filter((p) => p.template === t.id).length;
+              const previewKind = t.id === "quote" ? "point" : t.id;
+              return (
+                <div className="tpl-card" key={t.id}>
+                  <div className="tpl-card__preview">
+                    <div className={`mini-slide mini-slide--${previewKind}`}>
+                      <div className="mini-slide__k">1/1</div>
+                      <div className="mini-slide__h">{t.name}</div>
+                    </div>
+                  </div>
+                  <div className="tpl-card__body">
+                    <div className="tpl-card__head">
+                      <span className="tpl-card__name">{t.name}</span>
+                      <span className="tpl-card__id">{t.id}</span>
+                    </div>
+                    <p className="tpl-card__desc">{info.desc}</p>
+                    <div className="tpl-card__meta">
+                      <span className="tpl-card__usage">dipakai di {usage} post</span>
+                    </div>
+                    <div className="tpl-specs">
+                      <div className="tpl-spec-row">
+                        <span className="tpl-spec-row__block">{t.id}</span>
                         <span className="tpl-spec-row__fields">
-                          {block.fields.map((f, fi) => (
-                            <span key={f.name}>
+                          {Object.entries(t.slots).map(([name, max], fi) => (
+                            <span key={name}>
                               {fi > 0 ? ", " : ""}
-                              <b>{f.name}</b> &le;{f.limit}
+                              <b>{name}</b> &le;{max}
                             </span>
                           ))}
                         </span>
                       </div>
-                    );
-                  })}
+                    </div>
+                    <div className="tpl-card__actions">
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => setPreviewId(t.id)}
+                      >
+                        Lihat contoh
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="tpl-card__actions">
-                  <button
-                    type="button"
-                    className="btn btn--ghost btn--sm"
-                    onClick={() => setPreviewId(t.id)}
-                  >
-                    Lihat contoh
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
       </div>
 
-      <TemplateDetailModal templateId={previewId} onClose={() => setPreviewId(null)} />
+      <TemplateDetailModal
+        template={templates.find((t) => t.id === previewId) ?? null}
+        onClose={() => setPreviewId(null)}
+      />
     </section>
   );
 }

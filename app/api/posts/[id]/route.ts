@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { deletePost, getPost, updatePost } from "@/lib/db/queries";
 import { assertTransition, isDeletable } from "@/lib/posts/state-machine";
+import { toPostView } from "@/lib/posts/view";
 import type { PostStatus } from "@/lib/types";
 
 const STATUSES = [
@@ -35,7 +36,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const post = await getPost(id);
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ post });
+  return NextResponse.json({ post: toPostView(post) });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -69,7 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     ...(scheduledFor !== undefined ? { scheduledFor: scheduledFor ? new Date(scheduledFor) : null } : {}),
   });
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ post });
+  return NextResponse.json({ post: toPostView(post) });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

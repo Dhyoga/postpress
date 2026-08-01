@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { FieldError } from "@/components/ui/FieldError";
-import type { Plan, PostType, TemplateId } from "@/lib/mock/types";
-
-const TEMPLATE_OPTIONS: TemplateId[] = ["cover_list", "point_grid", "quote", "cta_only"];
+import { useApi } from "@/lib/hooks/use-api";
+import type { Theme } from "@/lib/llm/schemas/plan";
 
 type PlanErrors = { date?: string; topic?: string };
 
@@ -17,14 +16,17 @@ export function PlanModal({
 }: {
   open: boolean;
   onClose: () => void;
-  editing: Plan | null;
-  onSave: (data: Omit<Plan, "id">, id?: string) => void;
+  editing: Theme | null;
+  onSave: (data: Theme) => void;
 }) {
+  const { data: templatesRes } = useApi<{ templates: Array<{ id: string; name: string }> }>("/api/templates");
+  const templateOptions = useMemo(() => templatesRes?.templates ?? [], [templatesRes]);
+
   const [date, setDate] = useState("");
-  const [type, setType] = useState<PostType>("carousel");
+  const [type, setType] = useState<Theme["type"]>("carousel");
   const [topic, setTopic] = useState("");
   const [angle, setAngle] = useState("");
-  const [template, setTemplate] = useState<TemplateId>("cover_list");
+  const [template, setTemplate] = useState("");
   const [errors, setErrors] = useState<PlanErrors>({});
 
   useEffect(() => {
@@ -33,9 +35,13 @@ export function PlanModal({
     setType(editing?.type ?? "carousel");
     setTopic(editing?.topic ?? "");
     setAngle(editing?.angle ?? "");
-    setTemplate(editing?.template ?? "cover_list");
+    setTemplate(editing?.template ?? "");
     setErrors({});
   }, [open, editing]);
+
+  useEffect(() => {
+    if (!template && templateOptions.length > 0) setTemplate(templateOptions[0].id);
+  }, [template, templateOptions]);
 
   function validate(): PlanErrors {
     const next: PlanErrors = {};
@@ -49,7 +55,8 @@ export function PlanModal({
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    onSave({ date, type, topic: topic.trim(), angle: angle.trim(), template }, editing?.id);
+    if (!template) return;
+    onSave({ date, type, topic: topic.trim(), angle: angle.trim(), template });
     onClose();
   }
 
@@ -76,7 +83,7 @@ export function PlanModal({
           </div>
           <div className="field">
             <label htmlFor="plan-type">Jenis</label>
-            <select id="plan-type" value={type} onChange={(e) => setType(e.target.value as PostType)}>
+            <select id="plan-type" value={type} onChange={(e) => setType(e.target.value as Theme["type"])}>
               <option value="carousel">Carousel</option>
               <option value="single">Single post</option>
             </select>
@@ -108,11 +115,12 @@ export function PlanModal({
           <select
             id="plan-template"
             value={template}
-            onChange={(e) => setTemplate(e.target.value as TemplateId)}
+            onChange={(e) => setTemplate(e.target.value)}
+            disabled={templateOptions.length === 0}
           >
-            {TEMPLATE_OPTIONS.map((t) => (
-              <option key={t} value={t}>
-                {t}
+            {templateOptions.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
               </option>
             ))}
           </select>

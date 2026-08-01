@@ -5,7 +5,6 @@ import type { PostStatus } from "@/lib/types";
 export type { PostStatus };
 export type PostType = "single" | "carousel";
 export type SlideBlockKind = "cover" | "point" | "quote" | "cta";
-export type TemplateId = "cover_list" | "point_grid" | "quote" | "cta_only";
 
 export type PublishLogEntry = {
   phase: "container" | "carousel" | "publish";
@@ -14,6 +13,8 @@ export type PublishLogEntry = {
   detail?: string;
 };
 
+/** `template` sengaja `string`, bukan union tetap — id template sungguhan berasal dari
+ * registry Satori (lib/render/registry.ts, lihat /api/templates), tidak dikunci di sini. */
 export type Post = {
   id: string;
   date: string;
@@ -21,20 +22,11 @@ export type Post = {
   type: PostType;
   topic: string;
   status: PostStatus;
-  template: TemplateId;
+  template: string;
   slideKinds: SlideBlockKind[];
   caption: string;
   tags: string;
   igLink?: string;
   error?: string;
   logs?: PublishLogEntry[];
-};
-
-export type Plan = {
-  id: string;
-  date: string;
-  topic: string;
-  angle: string;
-  type: PostType;
-  template: TemplateId;
 };

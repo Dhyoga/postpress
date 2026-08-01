@@ -49,8 +49,8 @@ export async function GET() {
         return {
           kind: s.kind as ProofSlideContent["kind"],
           kicker: content.eyebrow ?? content.index ?? "",
-          heading: content.title ?? content.heading ?? "",
-          body: content.subtitle ?? content.body ?? "",
+          heading: content.title ?? content.heading ?? content.quote ?? "",
+          body: content.subtitle ?? content.body ?? content.attribution ?? "",
           imageUrl: s.imageUrl,
         };
       });

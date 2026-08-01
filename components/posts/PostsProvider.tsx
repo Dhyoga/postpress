@@ -2,7 +2,15 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useApi } from "@/lib/hooks/use-api";
-import type { Post, PostStatus } from "@/lib/mock/types";
+import type { Post, PostStatus, PostType } from "@/lib/mock/types";
+
+export type NewPostInput = {
+  type: PostType;
+  template: string;
+  topic: string;
+  planId?: string | null;
+  scheduledFor?: string | null;
+};
 
 type PostsContextValue = {
   posts: Post[];
@@ -10,7 +18,7 @@ type PostsContextValue = {
   error: string | null;
   refresh: () => void;
   updateStatus: (id: string, status: PostStatus) => Promise<void>;
-  addPost: (post: Post) => Promise<void>;
+  addPost: (post: NewPostInput) => Promise<void>;
   removePost: (id: string) => Promise<void>;
   generatePost: (id: string) => Promise<void>;
 };
@@ -49,18 +57,16 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function addPost(post: Post) {
-    const optimistic = [...posts, post];
-    setPosts(optimistic);
+  async function addPost(post: NewPostInput) {
     const res = await fetch("/api/posts", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(post),
     });
     if (!res.ok) {
-      setPosts(posts);
       throw new Error(`Gagal menambahkan post: ${res.status}`);
     }
+    refresh();
   }
 
   async function removePost(id: string) {

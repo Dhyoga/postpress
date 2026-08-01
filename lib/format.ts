@@ -15,6 +15,7 @@ const MONTHS_ID = [
 
 /** Format tanggal ISO ("2026-08-01") jadi "1 Agu", opsional dengan jam ("1 Agu · 19:00"). */
 export function formatDateId(date: string, time?: string): string {
+  if (!date) return "Belum dijadwalkan";
   const [, month, day] = date.split("-");
   const monthLabel = MONTHS_ID[Number.parseInt(month, 10) - 1];
   const out = `${day} ${monthLabel}`;

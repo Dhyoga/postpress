@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { usePosts } from "@/components/posts/PostsProvider";
 import { NewPostModal } from "@/components/posts/NewPostModal";
 import { useRegisterTopbarAction } from "@/components/dashboard/TopbarAction";
@@ -43,7 +43,8 @@ export function TodayView() {
   const [captionDraft, setCaptionDraft] = useState<string | null>(null);
   const [savingCaption, setSavingCaption] = useState(false);
 
-  useRegisterTopbarAction("Buat post baru", () => setPostModalOpen(true));
+  const openPostModal = useCallback(() => setPostModalOpen(true), []);
+  useRegisterTopbarAction("Buat post baru", openPostModal);
 
   const loading = postsLoading || statsLoading || slidesLoading;
   const stats = statsRes?.stats ?? [];
@@ -198,7 +199,7 @@ export function TodayView() {
               Cron generate:daily belum jalan atau belum ada tema di rencana konten untuk
               tanggal ini. Buat post manual kalau mau langsung mulai.
             </p>
-            <button type="button" className="btn btn--primary btn--sm" onClick={() => setPostModalOpen(true)}>
+            <button type="button" className="btn btn--primary btn--sm" onClick={openPostModal}>
               Buat post baru
             </button>
           </div>

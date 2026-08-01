@@ -16,7 +16,7 @@ export function SlideCard({
           // eslint-disable-next-line @next/next/no-img-element -- JPEG hasil render disajikan dari R2 (domain eksternal), bukan aset lokal Next.js.
           <img className="slide__img" src={content.imageUrl} alt={content.heading || `Slide ${index}`} />
         ) : (
-          <div className={`slide__canvas slide__canvas--${content.kind}`}>
+          <div className={`slide__canvas slide__canvas--${content.kind === "quote" ? "point" : content.kind}`}>
             <div className="slide__kicker">{content.kicker}</div>
             <div className="slide__h">{content.heading}</div>
             <div className="slide__p">{content.body}</div>

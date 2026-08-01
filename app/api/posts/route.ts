@@ -4,13 +4,14 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { listPosts, createPost } from "@/lib/db/queries";
+import { listPosts, createPost, getOrCreateDefaultAccount } from "@/lib/db/queries";
 import { TEMPLATE_IDS as REGISTRY_TEMPLATE_IDS } from "@/lib/render/registry";
+import { toPostView } from "@/lib/posts/view";
 
 const TEMPLATE_IDS = REGISTRY_TEMPLATE_IDS as [string, ...string[]];
 
 const CreatePostSchema = z.object({
-  accountId: z.string().uuid(),
+  accountId: z.string().uuid().optional(),
   planId: z.string().uuid().nullish(),
   type: z.enum(["single", "carousel"]),
   template: z.enum(TEMPLATE_IDS),
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status") || undefined;
   const limit = Number(searchParams.get("limit") || 50);
   const rows = await listPosts({ accountId, status, limit });
-  return NextResponse.json({ posts: rows });
+  return NextResponse.json({ posts: rows.map(toPostView) });
 }
 
 export async function POST(req: NextRequest) {
@@ -46,9 +47,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Data post tidak valid", issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { scheduledFor, ...rest } = parsed.data;
+  const { scheduledFor, accountId, ...rest } = parsed.data;
+  const account = accountId ? { id: accountId } : await getOrCreateDefaultAccount();
   const row = await createPost({
     ...rest,
+    accountId: account.id,
     status: "draft",
     scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
   });

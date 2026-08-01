@@ -5,17 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { listContentPlans, createContentPlan, getOrCreateDefaultAccount } from "@/lib/db/queries";
-import { TEMPLATE_IDS as REGISTRY_TEMPLATE_IDS } from "@/lib/render/registry";
-
-const TEMPLATE_IDS = REGISTRY_TEMPLATE_IDS as [string, ...string[]];
-
-const ThemeSchema = z.object({
-  date: z.string().datetime(),
-  topic: z.string().trim().min(1).max(300),
-  angle: z.string().trim().min(1).max(300),
-  type: z.enum(["single", "carousel"]),
-  template: z.enum(TEMPLATE_IDS),
-});
+import { ThemeSchema } from "@/lib/llm/schemas/plan";
 
 const CreatePlanSchema = z.object({
   accountId: z.string().uuid().optional(),

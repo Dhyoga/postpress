@@ -1,14 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { FieldError } from "@/components/ui/FieldError";
-import type { Post, PostType, TemplateId } from "@/lib/mock/types";
+import { useApi } from "@/lib/hooks/use-api";
+import type { PostType } from "@/lib/mock/types";
 import { usePosts } from "./PostsProvider";
-
-const TEMPLATE_OPTIONS: TemplateId[] = ["cover_list", "point_grid", "quote", "cta_only"];
 
 type PostErrors = { date?: string; topic?: string };
 
@@ -16,22 +15,30 @@ export function NewPostModal({ open, onClose }: { open: boolean; onClose: () => 
   const { addPost } = usePosts();
   const toast = useToast();
   const router = useRouter();
+  const { data: templatesRes } = useApi<{ templates: Array<{ id: string; name: string }> }>("/api/templates");
+  const templateOptions = useMemo(() => templatesRes?.templates ?? [], [templatesRes]);
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("19:00");
   const [topic, setTopic] = useState("");
   const [type, setType] = useState<PostType>("carousel");
-  const [template, setTemplate] = useState<TemplateId>("cover_list");
+  const [template, setTemplate] = useState("");
   const [errors, setErrors] = useState<PostErrors>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  function resetForm() {
+  useEffect(() => {
+    if (open) return;
     setDate("");
     setTime("19:00");
     setTopic("");
     setType("carousel");
-    setTemplate("cover_list");
+    setTemplate("");
     setErrors({});
-  }
+  }, [open]);
+
+  useEffect(() => {
+    if (!template && templateOptions.length > 0) setTemplate(templateOptions[0].id);
+  }, [template, templateOptions]);
 
   function validate(): PostErrors {
     const next: PostErrors = {};
@@ -40,30 +47,28 @@ export function NewPostModal({ open, onClose }: { open: boolean; onClose: () => 
     return next;
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-    // TODO: kirim ke POST /api/posts (design.md struktur app/api/posts/) untuk membuat
-    // draf sungguhan setelah backend siap. Untuk sekarang hanya menambah ke state client.
-    const newPost: Post = {
-      id: `post-${Date.now()}`,
-      date,
-      time: time || "19:00",
-      type,
-      topic: topic.trim(),
-      status: "draft",
-      template,
-      slideKinds: ["cover"],
-      caption: "Belum digenerate.",
-      tags: "",
-    };
-    addPost(newPost);
-    onClose();
-    resetForm();
-    toast("Draf baru ditambahkan ke Antrean.");
-    router.push("/dashboard/queue");
+    if (Object.keys(nextErrors).length > 0 || !template) return;
+
+    setSubmitting(true);
+    try {
+      await addPost({
+        type,
+        template,
+        topic: topic.trim(),
+        scheduledFor: new Date(`${date}T${time || "19:00"}:00+07:00`).toISOString(),
+      });
+      onClose();
+      toast("Draf baru ditambahkan ke Antrean.");
+      router.push("/dashboard/queue");
+    } catch {
+      toast("Gagal menambahkan post. Coba lagi.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -122,19 +127,20 @@ export function NewPostModal({ open, onClose }: { open: boolean; onClose: () => 
             <select
               id="post-template"
               value={template}
-              onChange={(e) => setTemplate(e.target.value as TemplateId)}
+              onChange={(e) => setTemplate(e.target.value)}
+              disabled={templateOptions.length === 0}
             >
-              {TEMPLATE_OPTIONS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {templateOptions.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
                 </option>
               ))}
             </select>
           </div>
         </div>
         <div className="modal__foot">
-          <button type="submit" className="btn btn--primary">
-            Tambah ke antrean
+          <button type="submit" className="btn btn--primary" disabled={submitting}>
+            {submitting ? "Menambahkan..." : "Tambah ke antrean"}
           </button>
           <button type="button" className="btn btn--ghost" onClick={onClose}>
             Batal

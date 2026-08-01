@@ -56,6 +56,7 @@ export async function listPosts(options: { accountId?: string; status?: string; 
     where: where.length ? and(...where) : undefined,
     orderBy: [desc(posts.createdAt)],
     limit,
+    with: { slides: true, publishLogs: true },
   });
 }
 
@@ -154,6 +155,18 @@ export async function listContentPlans(accountId: string) {
 
 export async function createContentPlan(input: typeof contentPlans.$inferInsert) {
   return db.insert(contentPlans).values(input).returning();
+}
+
+export async function getContentPlan(id: string) {
+  return db.query.contentPlans.findFirst({ where: eq(contentPlans.id, id) });
+}
+
+export async function updateContentPlanThemes(id: string, themes: unknown) {
+  return db.update(contentPlans).set({ themes }).where(eq(contentPlans.id, id)).returning();
+}
+
+export async function deleteContentPlan(id: string) {
+  return db.delete(contentPlans).where(eq(contentPlans.id, id)).returning();
 }
 
 // -------------------- IG Accounts --------------------
