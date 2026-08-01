@@ -209,12 +209,35 @@ Fase paling berisiko secara teknis. Kerjakan sebelum menyentuh LLM — lebih mud
 
 ## Fase 6 — Pengerasan (Minggu 6–7)
 
-- [ ] Job refresh token + alert kalau <14 hari lagi kedaluwarsa
-- [ ] Halaman riwayat dengan pesan kegagalan yang bisa ditindaklanjuti
-- [ ] Backup database terjadwal
-- [ ] Pemantauan uptime cron
-- [ ] Panduan operator: apa yang harus dilakukan saat post gagal
-- [ ] Audit: tidak ada token di log atau pesan error
+- [x] Job refresh token + alert kalau <14 hari lagi kedaluwarsa
+- [x] Halaman riwayat dengan pesan kegagalan yang bisa ditindaklanjuti
+- [x] Backup database terjadwal
+- [x] Pemantauan uptime cron
+- [x] Panduan operator: apa yang harus dilakukan saat post gagal
+- [x] Audit: tidak ada token di log atau pesan error
+
+> Catatan: `token:refresh` (`lib/instagram/token-refresh.ts`) melewati akun
+> System User (`token_expires_at` null) tanpa disentuh, mencoba tukar token
+> long-lived lewat endpoint OAuth Meta untuk akun yang punya expiry, dan
+> mengirim notifikasi hanya kalau refresh gagal DAN sisa waktu di bawah 14
+> hari — diuji unit dengan mock `fetch` (4 skenario: System User, refresh
+> sukses, gagal+dekat kedaluwarsa jadi alert, gagal+masih jauh jadi diam).
+> `backup:database` (`lib/jobs/backup.ts`) dump semua tabel ke JSON lewat
+> query aplikasi (bukan `pg_dump` — host cron biasanya tidak punya akses
+> shell ke binary itu) dan diunggah ke R2; diuji nyata (10 tabel, 24 baris
+> ke bucket R2 sungguhan, lalu dihapus lagi). Pemantauan uptime lewat pola
+> "ping saat selesai" (`CRON_HEARTBEAT_BASE_URL`, cocok untuk
+> healthchecks.io/Cronitor) dipasang di keenam endpoint cron. Panduan
+> operator ada di `docs/operator-runbook.md`. Audit rahasia menemukan dan
+> memperbaiki kebocoran nyata: `GET /api/settings` sebelumnya mengembalikan
+> baris `ig_accounts` mentah termasuk `token_encrypted` ke browser — sekarang
+> field akun dipetakan eksplisit (`id`, `handle`, `igUserId`,
+> `tokenExpiresAt`, `isActive`), token tidak pernah keluar meski sudah
+> terenkripsi, sesuai design.md §11.1. Perbaikan HistoryDetailModal juga
+> ditemukan lewat audit alur state machine: tombol "Coba lagi" tadinya
+> memanggil transisi `failed` → `needs_review` yang tidak sah menurut state
+> machine (Fase 1/5) — sekarang memanggil pipeline generate ulang yang sama
+> dengan tombol "Generate sekarang"/"Buat ulang".
 
 ---
 

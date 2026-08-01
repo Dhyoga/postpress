@@ -12,14 +12,19 @@ export function HistoryDetailModal({
   postId: string | null;
   onClose: () => void;
 }) {
-  const { posts, updateStatus } = usePosts();
+  const { posts, generatePost } = usePosts();
   const toast = useToast();
   const post = postId ? (posts.find((p) => p.id === postId) ?? null) : null;
 
-  function handleRetry() {
+  async function handleRetry() {
     if (!post) return;
-    updateStatus(post.id, "needs_review");
-    toast("Dijadwalkan untuk dicoba lagi, masuk ke Antrean.");
+    toast("Membuat ulang lewat LLM + render...");
+    try {
+      await generatePost(post.id);
+      toast("Selesai dibuat ulang, masuk ke Antrean untuk direview.");
+    } catch {
+      toast("Gagal membuat ulang. Coba lagi.");
+    }
     onClose();
   }
 

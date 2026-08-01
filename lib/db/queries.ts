@@ -241,6 +241,15 @@ export async function getSettingsSnapshot() {
     schedule: { weeklyPlanCron: "0 5 * * 0", dailyGenerateCron: "0 6 * * *", hourlyPublishCron: "0 * * * *" },
     notifications: { channels: [] },
     users: userRows.map((u) => ({ id: u.id, username: u.username, role: u.role, createdAt: u.createdAt, lastLoginAt: u.lastLoginAt })),
-    accounts: accountRows,
+    // token_encrypted TIDAK PERNAH keluar lewat API meski sudah terenkripsi —
+    // design.md §11.1: "status koneksi ... token-nya sendiri tidak pernah
+    // ditampilkan balik." UI cuma perlu tahu akun mana yang tersambung.
+    accounts: accountRows.map((a) => ({
+      id: a.id,
+      handle: a.handle,
+      igUserId: a.igUserId,
+      tokenExpiresAt: a.tokenExpiresAt,
+      isActive: a.isActive,
+    })),
   };
 }

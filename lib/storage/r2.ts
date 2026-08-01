@@ -46,6 +46,19 @@ export async function deleteSlideJpeg(key: string): Promise<void> {
   await getClient().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
 
+/** Upload generik (dipakai backup database, Fase 6) — beda dari
+ * `uploadSlideJpeg` karena tidak mengembalikan URL publik. Bucket R2 di
+ * proyek ini publik-baca lewat `NEXT_PUBLIC_R2_BASE_URL` untuk keperluan
+ * JPEG slide (disyaratkan Instagram Graph API), jadi backup yang naik ke
+ * bucket yang sama ikut bisa diakses lewat URL itu kalau tahu key-nya —
+ * lihat catatan di `docs/operator-runbook.md` soal memisahkan bucket privat
+ * untuk backup di produksi. */
+export async function uploadObject(key: string, body: Buffer, contentType: string): Promise<string> {
+  const bucket = getEnv("R2_BUCKET");
+  await getClient().send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType }));
+  return key;
+}
+
 export function slideObjectKey(postId: string, position: number): string {
   return `posts/${postId}/slide-${String(position).padStart(2, "0")}.jpg`;
 }
