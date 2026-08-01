@@ -103,10 +103,13 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
 
   async function publishNow(id: string) {
     const res = await fetch(`/api/posts/${encodeURIComponent(id)}/publish`, { method: "POST" });
-    if (!res.ok) {
-      throw new Error(`Gagal publish post: ${res.status}`);
-    }
+    const data = await res.json().catch(() => ({}));
     refresh();
+    // `attemptPublish` bisa gagal (Graph API menolak) tanpa membuat request-nya
+    // sendiri gagal (tetap HTTP 200) — cek `ok` di body, bukan cuma res.ok.
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || `Gagal publish post: ${res.status}`);
+    }
   }
 
   return (

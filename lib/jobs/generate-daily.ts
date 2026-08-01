@@ -1,6 +1,6 @@
 import { ThemeSchema, type Theme } from "@/lib/llm/schemas/plan";
 import { generatePostContent } from "@/lib/jobs/generate";
-import { listActiveAccounts, listContentPlans, findPostByTopic, createPost } from "@/lib/db/queries";
+import { listActiveAccounts, listContentPlans, findPostByTopic, createPost, logPostEvent } from "@/lib/db/queries";
 import { wibDateString } from "@/lib/format";
 import { notifyJobFailure } from "./notify";
 
@@ -54,6 +54,7 @@ export async function runGenerateDaily(): Promise<GenerateDailyResult[]> {
       status: "draft",
       scheduledFor: new Date(`${targetDate}T10:00:00+07:00`),
     });
+    await logPostEvent(post.id, "Masuk ke antrean sebagai draf (otomatis, generate:daily)");
 
     try {
       await generatePostContent(post.id, theme.angle);

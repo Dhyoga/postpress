@@ -2,7 +2,7 @@ import { GraphClient, type GraphResult } from "./client";
 import { GraphApiError } from "./errors";
 import { decryptToken } from "./token-crypto";
 import { isRetryableError } from "./retry";
-import { getPost, getIgAccount, createPublishLog, updatePost } from "@/lib/db/queries";
+import { getPost, getIgAccount, createPublishLog, updatePost, logPostEvent } from "@/lib/db/queries";
 
 export class PublishBlockedError extends Error {}
 
@@ -104,12 +104,16 @@ async function publishCarousel(
 }
 
 /** design.md §8.4 — baca kuota langsung dari Graph API sebelum publish,
- * jangan percaya angka yang beredar di internet. */
+ * jangan percaya angka yang beredar di internet. Meta tidak selalu
+ * menyertakan `config` di respons ini (tergantung akun/API version) — kalau
+ * tidak ada, kita tidak bisa menilai kuotanya, jadi lewati saja pengecekan
+ * ini daripada crash; Graph API tetap akan menolak publish sungguhan kalau
+ * kuota memang habis. */
 async function checkPublishingLimit(client: GraphClient, igUserId: string, postId: string, attempt: number): Promise<void> {
   const result = await client.getContentPublishingLimit(igUserId);
   await logPhase(postId, attempt, "publish", { check: "content_publishing_limit" }, { ok: true, data: result });
   const usage = result.data.data[0];
-  if (usage && usage.quota_usage >= usage.config.quota_total) {
+  if (usage?.config && usage.quota_usage >= usage.config.quota_total) {
     throw new PublishBlockedError("Kuota publish harian akun ini sudah habis. Coba lagi setelah kuota reset.");
   }
 }
@@ -137,6 +141,7 @@ export async function attemptPublish(postId: string, attempt: number, deps: Publ
   if (!account) throw new Error("Akun IG untuk post ini tidak ditemukan");
 
   await updatePost(postId, { status: "publishing" });
+  await logPostEvent(postId, "Sedang diproses ke Instagram");
   const sortedSlides = [...post.slides].sort((a, b) => a.position - b.position);
 
   try {
@@ -153,12 +158,30 @@ export async function attemptPublish(postId: string, attempt: number, deps: Publ
         : await publishSingle(client, account.igUserId, post, sortedSlides[0], attempt);
 
     await updatePost(postId, { status: "published", publishedAt: new Date(), igMediaId: mediaId, errorMessage: null });
+    await logPostEvent(postId, "Berhasil publish ke Instagram");
     return { ok: true, retryable: false, mediaId };
   } catch (err) {
+    // Sebelumnya error non-GraphApiError/PublishBlockedError (mis. bug JS,
+    // guard "slide belum punya URL gambar") dibuang jadi pesan generik —
+    // pesan aslinya tidak pernah tersimpan di mana pun, menyulitkan debug.
+    // `.message` Error di modul ini tidak pernah menyisipkan token/URL
+    // berisi access_token (lihat GraphClient.request — kegagalan fetch
+    // dibungkus GraphApiError dengan pesan tetap), jadi aman ditampilkan.
     const message =
-      err instanceof GraphApiError || err instanceof PublishBlockedError ? err.message : "Gagal publish ke Instagram.";
+      err instanceof GraphApiError || err instanceof PublishBlockedError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Gagal publish ke Instagram.";
     const retryable = isRetryableError(err);
+    // Jaring pengaman: kegagalan sebelum publishSingle/publishCarousel sempat
+    // mencatat log sendiri (mis. decryptToken atau checkPublishingLimit
+    // gagal) sebelumnya tidak tercatat di publish_logs sama sekali — post
+    // langsung "failed" tanpa jejak. Selalu catat di sini juga (harmless
+    // kalau publishSingle/Carousel sudah mencatat fase yang lebih spesifik).
+    await logPhase(postId, attempt, "publish", {}, { ok: false, error: err });
     await updatePost(postId, { status: "failed", errorMessage: message });
+    await logPostEvent(postId, `Gagal publish ke Instagram: ${message}. Silakan coba lagi.`, false);
     return { ok: false, retryable, error: message };
   }
 }

@@ -6,11 +6,14 @@ export type { PostStatus };
 export type PostType = "single" | "carousel";
 export type SlideBlockKind = "cover" | "point" | "quote" | "cta";
 
-export type PublishLogEntry = {
-  phase: "container" | "carousel" | "publish";
+/** Satu baris timeline lifecycle post yang bisa dibaca manusia ("Disetujui",
+ * "Sedang diproses ke Instagram", dst) — sumbernya tabel `post_events`,
+ * BUKAN `publish_logs` (yang mencatat detail teknis tiap panggilan Graph API
+ * per percobaan publish, dipakai debugging bukan ditampilkan ke pengguna). */
+export type PostEventEntry = {
+  message: string;
   ok: boolean;
   time: string;
-  detail?: string;
 };
 
 /** `template` sengaja `string`, bukan union tetap — id template sungguhan berasal dari
@@ -28,5 +31,5 @@ export type Post = {
   tags: string;
   igLink?: string;
   error?: string;
-  logs?: PublishLogEntry[];
+  logs?: PostEventEntry[];
 };

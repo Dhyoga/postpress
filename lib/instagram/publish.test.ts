@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   getIgAccount: vi.fn(),
   createPublishLog: vi.fn(),
   updatePost: vi.fn(),
+  logPostEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db/queries", () => mocks);
@@ -24,6 +25,7 @@ beforeEach(() => {
   mocks.getIgAccount.mockResolvedValue(account);
   mocks.createPublishLog.mockResolvedValue([{}]);
   mocks.updatePost.mockResolvedValue([{}]);
+  mocks.logPostEvent.mockResolvedValue([{}]);
 });
 
 describe("attemptPublish — carousel", () => {
@@ -142,6 +144,24 @@ describe("attemptPublish — single post", () => {
     // content_publishing_limit + container + publish = 3 phases, never "carousel".
     expect(mocks.createPublishLog).toHaveBeenCalledTimes(3);
     expect(mocks.createPublishLog.mock.calls.some((c) => c[0].phase === "carousel")).toBe(false);
+  });
+
+  it("does not crash when Meta omits `config` from the quota response", async () => {
+    mocks.getPost.mockResolvedValue(singlePost);
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      // Bentuk nyata yang pernah dibalas Meta — tanpa `config`, cuma `quota_usage`.
+      if (url.pathname.endsWith("/content_publishing_limit")) {
+        return jsonResponse({ data: [{ quota_usage: 0 }] });
+      }
+      if (url.pathname.endsWith("/media_publish")) return jsonResponse({ id: "media_single" });
+      return jsonResponse({ id: "container_single" });
+    });
+    const client = new GraphClient("token", { fetchImpl: fetchImpl as unknown as typeof fetch });
+
+    const result = await attemptPublish("post_2", 1, { client });
+
+    expect(result).toEqual({ ok: true, retryable: false, mediaId: "media_single" });
   });
 });
 

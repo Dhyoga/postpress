@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { deletePost, getPost, updatePost } from "@/lib/db/queries";
+import { deletePost, getPost, updatePost, logPostEvent } from "@/lib/db/queries";
 import { assertTransition, isDeletable, isScheduleEditable } from "@/lib/posts/state-machine";
 import { toPostView } from "@/lib/posts/view";
 import type { PostStatus } from "@/lib/types";
@@ -19,6 +19,17 @@ const STATUSES = [
   "published",
   "failed",
 ] as const;
+
+/** Pesan timeline untuk transisi status manual lewat PATCH (tombol
+ * Setujui/Batalkan/Tolak) — transisi otomatis (generating/publishing/dst)
+ * dicatat sendiri di lib/jobs/generate.ts & lib/instagram/publish.ts. */
+function describeStatusChange(from: PostStatus, to: PostStatus): string | null {
+  if (to === "approved") return "Disetujui, dijadwalkan tayang";
+  if (from === "approved" && to === "needs_review") return "Persetujuan dibatalkan, kembali ke review";
+  if (from === "needs_review" && to === "draft") return "Ditolak, dikembalikan ke draf";
+  if (to === "rejected") return "Ditolak";
+  return null;
+}
 
 const PatchPostSchema = z.object({
   status: z.enum(STATUSES).optional(),
@@ -77,6 +88,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     ...(scheduledFor !== undefined ? { scheduledFor: scheduledFor ? new Date(scheduledFor) : null } : {}),
   });
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (parsed.data.status) {
+    const message = describeStatusChange(existing.status as PostStatus, parsed.data.status);
+    if (message) await logPostEvent(id, message);
+  }
+
   return NextResponse.json({ post: toPostView(post) });
 }
 

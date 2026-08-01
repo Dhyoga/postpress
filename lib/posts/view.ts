@@ -1,9 +1,9 @@
 import type { PostStatus, PostType } from "@/lib/types";
-import type { PublishLogEntry } from "@/lib/mock/types";
+import type { PostEventEntry } from "@/lib/mock/types";
 import { wibDateString, wibTimeString } from "@/lib/format";
 
 type SlideRow = { position: number; kind: string };
-type PublishLogRow = { phase: string; ok: boolean; createdAt: Date | string };
+type PostEventRow = { message: string; ok: boolean; createdAt: Date | string };
 
 type PostRow = {
   id: string;
@@ -16,7 +16,7 @@ type PostRow = {
   scheduledFor: Date | string | null;
   errorMessage: string | null;
   slides?: SlideRow[];
-  publishLogs?: PublishLogRow[];
+  postEvents?: PostEventRow[];
 };
 
 /**
@@ -31,11 +31,17 @@ export function toPostView(row: PostRow) {
     .slice()
     .sort((a, b) => a.position - b.position)
     .map((s) => s.kind);
-  const logs: PublishLogEntry[] = (row.publishLogs ?? []).map((log) => ({
-    phase: log.phase as PublishLogEntry["phase"],
-    ok: log.ok,
-    time: wibTimeString(new Date(log.createdAt)),
-  }));
+  // Urut lama -> baru (narasi lifecycle post) — jangan andalkan orderBy di
+  // query relasi, urutkan eksplisit di sini biar tidak tergantung perilaku
+  // drizzle relational query.
+  const logs: PostEventEntry[] = (row.postEvents ?? [])
+    .slice()
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    .map((event) => ({
+      message: event.message,
+      ok: event.ok,
+      time: wibTimeString(new Date(event.createdAt)),
+    }));
 
   return {
     id: row.id,

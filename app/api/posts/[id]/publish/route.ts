@@ -28,13 +28,18 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     );
   }
 
+  let result;
   try {
-    await attemptPublish(id, 1);
+    result = await attemptPublish(id, 1);
   } catch (err) {
     const message = err instanceof PublishBlockedError ? err.message : "Gagal menjalankan proses publish";
-    return NextResponse.json({ error: message }, { status: 409 });
+    return NextResponse.json({ error: message, ok: false }, { status: 409 });
   }
 
+  // attemptPublish menangkap kegagalan publish sungguhan sendiri (mis. Graph
+  // API menolak) dan tidak throw — cuma balikin { ok:false }. Kalau di sini
+  // selalu balas 200 tanpa cek `result.ok`, caller (PostsProvider.publishNow)
+  // tidak akan pernah tahu publish-nya sebenarnya gagal.
   const post = await getPost(id);
-  return NextResponse.json({ post });
+  return NextResponse.json({ post, ok: result.ok, error: result.error });
 }

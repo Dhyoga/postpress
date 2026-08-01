@@ -97,7 +97,9 @@ export class GraphClient {
   /** design.md §8.4 — cek kuota harian sebelum publish, bukan percaya angka dari blog. */
   async getContentPublishingLimit(
     igUserId: string,
-  ): Promise<GraphResult<{ data: Array<{ quota_usage: number; config: { quota_total: number; quota_duration: number } }> }>> {
+  ): Promise<
+    GraphResult<{ data: Array<{ quota_usage: number; config?: { quota_total: number; quota_duration: number } }> }>
+  > {
     return this.request(`${igUserId}/content_publishing_limit`, {}, "GET");
   }
 }

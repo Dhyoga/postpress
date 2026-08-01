@@ -8,6 +8,7 @@ import {
   posts,
   slides,
   publishLogs,
+  postEvents,
   personas,
   personaSegments,
   personaKeywords,
@@ -57,7 +58,7 @@ export async function listPosts(options: { accountId?: string; status?: string; 
     where: where.length ? and(...where) : undefined,
     orderBy: [desc(posts.createdAt)],
     limit,
-    with: { slides: true, publishLogs: true },
+    with: { slides: true, publishLogs: true, postEvents: { orderBy: [desc(postEvents.createdAt)] } },
   });
 }
 
@@ -67,9 +68,18 @@ export async function getPost(id: string) {
     with: {
       slides: true,
       publishLogs: { orderBy: [desc(publishLogs.createdAt)] },
+      postEvents: { orderBy: [desc(postEvents.createdAt)] },
       plan: true,
     },
   });
+}
+
+/** Satu baris timeline manusia-terbaca per event lifecycle post (dibuat,
+ * masuk antrean, di-generate, disetujui, dipublish, dst) — dipakai modal
+ * Riwayat/Antrean supaya pengguna lihat riwayat lengkap, bukan cuma detail
+ * teknis panggilan Graph API (`publish_logs`). */
+export async function logPostEvent(postId: string, message: string, ok = true) {
+  return db.insert(postEvents).values({ postId, message, ok }).returning();
 }
 
 export async function createPost(input: typeof posts.$inferInsert) {

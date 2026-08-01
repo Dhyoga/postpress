@@ -1,4 +1,4 @@
-import { getPost, replaceSlides, updatePost } from "@/lib/db/queries";
+import { getPost, replaceSlides, updatePost, logPostEvent } from "@/lib/db/queries";
 import { generateCopy, CopywriterFailedError, slideSkeleton } from "@/lib/llm/copywriter";
 import { renderJpeg } from "@/lib/render/render";
 import { uploadSlideJpeg, slideObjectKey } from "@/lib/storage/r2";
@@ -16,6 +16,7 @@ export async function generatePostContent(postId: string, angle?: string): Promi
   if (!post) throw new Error(`Post ${postId} tidak ditemukan`);
 
   await updatePost(postId, { status: "generating" });
+  await logPostEvent(postId, "Sedang dibuat (LLM + render)");
 
   const theme: Theme = {
     date: (post.scheduledFor ?? post.createdAt).toISOString().slice(0, 10),
@@ -31,6 +32,7 @@ export async function generatePostContent(postId: string, angle?: string): Promi
   } catch (err) {
     const message = err instanceof CopywriterFailedError ? err.message : "Gagal membuat konten. Coba generate ulang.";
     await updatePost(postId, { status: "failed", errorMessage: message });
+    await logPostEvent(postId, `Gagal dibuat: ${message}`, false);
     return;
   }
 
@@ -51,4 +53,5 @@ export async function generatePostContent(postId: string, angle?: string): Promi
     status: "needs_review",
     errorMessage: null,
   });
+  await logPostEvent(postId, "Berhasil dibuat, menunggu review");
 }

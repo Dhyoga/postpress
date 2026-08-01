@@ -91,6 +91,24 @@ export const slides = pgTable(
   }),
 );
 
+/** Timeline satu baris per event lifecycle post yang bisa dibaca manusia
+ * ("Disetujui", "Sedang diproses ke Instagram", dst) — beda dari
+ * `publish_logs` yang mencatat detail teknis tiap panggilan Graph API selama
+ * SATU percobaan publish. Dipakai buat timeline di modal Riwayat/Antrean. */
+export const postEvents = pgTable(
+  "post_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id").notNull().references(() => posts.id, { onDelete: "cascade" }),
+    message: text("message").notNull(),
+    ok: boolean("ok").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    postIdIdx: index("post_events_post_id_idx").on(t.postId),
+  }),
+);
+
 export const publishLogs = pgTable(
   "publish_logs",
   {
@@ -221,6 +239,7 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   }),
   slides: many(slides),
   publishLogs: many(publishLogs),
+  postEvents: many(postEvents),
 }));
 
 export const slidesRelations = relations(slides, ({ one }) => ({
@@ -233,6 +252,13 @@ export const slidesRelations = relations(slides, ({ one }) => ({
 export const publishLogsRelations = relations(publishLogs, ({ one }) => ({
   post: one(posts, {
     fields: [publishLogs.postId],
+    references: [posts.id],
+  }),
+}));
+
+export const postEventsRelations = relations(postEvents, ({ one }) => ({
+  post: one(posts, {
+    fields: [postEvents.postId],
     references: [posts.id],
   }),
 }));

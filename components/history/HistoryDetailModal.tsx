@@ -26,18 +26,28 @@ export function HistoryDetailModal({
   postId: string | null;
   onClose: () => void;
 }) {
-  const { posts, generatePost } = usePosts();
+  const { posts, generatePost, publishNow } = usePosts();
   const toast = useToast();
   const post = postId ? (posts.find((p) => p.id === postId) ?? null) : null;
 
   async function handleRetry() {
     if (!post) return;
-    toast("Membuat ulang lewat LLM + render...");
+    // Post yang sudah punya slide berarti sempat lolos generate & disetujui —
+    // gagalnya di tahap publish, jadi "Coba lagi" harus lanjut nyoba publish
+    // lagi, bukan generate ulang dari nol (buang konten yang sudah oke).
+    const isPublishRetry = post.slideKinds.length > 0;
+    toast(isPublishRetry ? "Mencoba publish ulang ke Instagram..." : "Membuat ulang lewat LLM + render...");
     try {
-      await generatePost(post.id);
-      toast("Selesai dibuat ulang, masuk ke Antrean untuk direview.");
-    } catch {
-      toast("Gagal membuat ulang. Coba lagi.");
+      if (isPublishRetry) {
+        await publishNow(post.id);
+        toast("Berhasil dipublish ke Instagram.");
+      } else {
+        await generatePost(post.id);
+        toast("Selesai dibuat ulang, masuk ke Antrean untuk direview.");
+      }
+    } catch (err) {
+      const fallback = isPublishRetry ? "Gagal publish. Coba lagi." : "Gagal membuat ulang. Coba lagi.";
+      toast(err instanceof Error && err.message ? err.message : fallback);
     }
     onClose();
   }
@@ -62,15 +72,14 @@ export function HistoryDetailModal({
             <div className="timeline">
               {(post.logs ?? []).map((log, i) => (
                 <div className="timeline__row" key={i}>
-                  <span className="timeline__phase">{log.phase}</span>
-                  <span className="timeline__time">{log.time}</span>
+                  <span className="timeline__detail">{log.message}</span>
+                  <span className="timeline__time">{log.time} WIB</span>
                   <span
                     className={log.ok ? "chip chip--approved" : "chip chip--failed"}
                     style={{ fontSize: 9.5 }}
                   >
                     {log.ok ? "ok" : "gagal"}
                   </span>
-                  <span className="timeline__detail">{log.detail ?? ""}</span>
                 </div>
               ))}
             </div>

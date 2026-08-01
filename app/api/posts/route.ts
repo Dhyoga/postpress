@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { listPosts, createPost, getOrCreateDefaultAccount } from "@/lib/db/queries";
+import { listPosts, createPost, getOrCreateDefaultAccount, logPostEvent } from "@/lib/db/queries";
 import { TEMPLATE_IDS as REGISTRY_TEMPLATE_IDS } from "@/lib/render/registry";
 import { toPostView } from "@/lib/posts/view";
 
@@ -55,5 +55,6 @@ export async function POST(req: NextRequest) {
     status: "draft",
     scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
   });
+  await logPostEvent(row[0].id, "Masuk ke antrean sebagai draf");
   return NextResponse.json({ post: row[0] }, { status: 201 });
 }
