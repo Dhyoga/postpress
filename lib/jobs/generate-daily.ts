@@ -1,15 +1,8 @@
 import { ThemeSchema, type Theme } from "@/lib/llm/schemas/plan";
 import { generatePostContent } from "@/lib/jobs/generate";
 import { listActiveAccounts, listContentPlans, findPostByTopic, createPost } from "@/lib/db/queries";
+import { wibDateString } from "@/lib/format";
 import { notifyJobFailure } from "./notify";
-
-const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-/** Asia/Jakarta tidak pakai DST, jadi offset tetap +7 jam dari UTC cukup —
- * tidak perlu Intl.DateTimeFormat/timezone database untuk ini. */
-function wibDateString(d: Date): string {
-  return new Date(d.getTime() + WIB_OFFSET_MS).toISOString().slice(0, 10);
-}
 
 interface GenerateDailyResult {
   accountId: string;

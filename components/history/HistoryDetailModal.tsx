@@ -5,6 +5,20 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { formatDateId } from "@/lib/format";
 
+/** `post.error` bisa berisi kalimat ringkas + detail teknis provider (LLM)
+ * dipisah newline — lihat `lib/llm/client.ts` `extractErrorDetail`. Pesan lama
+ * (satu baris, tanpa detail) tetap didukung karena split ini no-op untuknya. */
+function errorSummary(error: string): string {
+  return error.split("\n", 1)[0];
+}
+
+function errorDetail(error: string): string | null {
+  const idx = error.indexOf("\n");
+  if (idx === -1) return null;
+  const rest = error.slice(idx + 1).trim();
+  return rest || null;
+}
+
 export function HistoryDetailModal({
   postId,
   onClose,
@@ -39,7 +53,12 @@ export function HistoryDetailModal({
             onClose={onClose}
           />
           <div className="modal__body">
-            {post.status === "failed" && post.error ? <p className="alert">{post.error}</p> : null}
+            {post.status === "failed" && post.error ? (
+              <>
+                <p className="alert">{errorSummary(post.error)}</p>
+                {errorDetail(post.error) ? <pre className="alert-detail">{errorDetail(post.error)}</pre> : null}
+              </>
+            ) : null}
             <div className="timeline">
               {(post.logs ?? []).map((log, i) => (
                 <div className="timeline__row" key={i}>

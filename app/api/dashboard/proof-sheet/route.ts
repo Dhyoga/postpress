@@ -6,6 +6,7 @@ import { db } from "@/lib/db/index";
 import { eq, desc, sql } from "drizzle-orm";
 import { posts } from "@/lib/db/schema";
 import { requireUser } from "@/lib/auth";
+import { wibDateString, wibTimeString } from "@/lib/format";
 import type { ProofSlideContent } from "@/lib/mock/proof-sheet";
 
 export async function GET() {
@@ -64,8 +65,8 @@ export async function GET() {
           topic: featured.topic,
           status: featured.status,
           template: featured.template,
-          date: featured.scheduledFor ? new Date(featured.scheduledFor).toISOString().slice(0, 10) : null,
-          time: featured.scheduledFor ? new Date(featured.scheduledFor).toISOString().slice(11, 16) : null,
+          date: featured.scheduledFor ? wibDateString(new Date(featured.scheduledFor)) : null,
+          time: featured.scheduledFor ? wibTimeString(new Date(featured.scheduledFor)) : null,
           caption: featured.caption,
           tags: featured.hashtags?.join(" ") ?? "",
           type: featured.type,

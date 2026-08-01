@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { deletePost, getPost, updatePost } from "@/lib/db/queries";
-import { assertTransition, isDeletable } from "@/lib/posts/state-machine";
+import { assertTransition, isDeletable, isScheduleEditable } from "@/lib/posts/state-machine";
 import { toPostView } from "@/lib/posts/view";
 import type { PostStatus } from "@/lib/types";
 
@@ -62,6 +62,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     } catch (err) {
       return NextResponse.json({ error: err instanceof Error ? err.message : "Transisi status tidak valid" }, { status: 409 });
     }
+  }
+
+  if (parsed.data.scheduledFor !== undefined && !isScheduleEditable(existing.status as PostStatus)) {
+    return NextResponse.json(
+      { error: "Jadwal tidak bisa diubah untuk post yang sedang atau sudah dipublish" },
+      { status: 409 },
+    );
   }
 
   const { scheduledFor, ...rest } = parsed.data;

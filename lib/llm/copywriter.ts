@@ -52,12 +52,13 @@ export async function generateCopy(accountId: string, theme: Theme): Promise<Cop
   const slideSpecs = skeleton.map((kind) => ({ kind, slots: getSlotLimits(kind) }));
 
   let avoidWords: string[] | undefined;
+  let previousError: string | undefined;
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
       const copy = await callStructured({
         system: COPYWRITER_SYSTEM_PROMPT,
-        user: buildCopywriterUserPrompt({ theme, persona, slideSpecs, ctaKeywords, forbiddenKeywords, avoidWords }),
+        user: buildCopywriterUserPrompt({ theme, persona, slideSpecs, ctaKeywords, forbiddenKeywords, avoidWords, previousError }),
         schema: CopySchema,
         toolName: "submit_copy",
         toolDescription: "Kirim teks slide, caption, dan hashtag untuk tema yang diminta.",
@@ -86,6 +87,7 @@ export async function generateCopy(accountId: string, theme: Theme): Promise<Cop
         const message = err instanceof LlmError ? err.message : "Gagal membuat copy.";
         throw new CopywriterFailedError(message);
       }
+      previousError = err instanceof LlmError ? err.message : undefined;
     }
   }
 

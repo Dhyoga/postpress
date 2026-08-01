@@ -1,5 +1,6 @@
 import type { PostStatus, PostType } from "@/lib/types";
 import type { PublishLogEntry } from "@/lib/mock/types";
+import { wibDateString, wibTimeString } from "@/lib/format";
 
 type SlideRow = { position: number; kind: string };
 type PublishLogRow = { phase: string; ok: boolean; createdAt: Date | string };
@@ -33,13 +34,13 @@ export function toPostView(row: PostRow) {
   const logs: PublishLogEntry[] = (row.publishLogs ?? []).map((log) => ({
     phase: log.phase as PublishLogEntry["phase"],
     ok: log.ok,
-    time: new Date(log.createdAt).toISOString().slice(11, 16),
+    time: wibTimeString(new Date(log.createdAt)),
   }));
 
   return {
     id: row.id,
-    date: scheduled ? scheduled.toISOString().slice(0, 10) : "",
-    time: scheduled ? scheduled.toISOString().slice(11, 16) : "",
+    date: scheduled ? wibDateString(scheduled) : "",
+    time: scheduled ? wibTimeString(scheduled) : "",
     type: row.type as PostType,
     topic: row.topic,
     status: row.status as PostStatus,

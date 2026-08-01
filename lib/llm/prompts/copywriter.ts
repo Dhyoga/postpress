@@ -9,7 +9,7 @@ Tugasmu: mengubah SATU tema jadi teks per slide plus caption dan hashtag, mengik
 
 Aturan:
 - Isi HANYA slot teks yang diminta di spesifikasi template — jangan pernah menghasilkan HTML, CSS, atau instruksi layout apa pun.
-- Patuhi batas karakter tiap slot dengan ketat. Lebih pendek dari batas selalu lebih aman daripada mepet batas.
+- Batas karakter tiap slot itu batas KERAS — dicek otomatis sesudahnya, kalau terlampaui walau 1 karakter, hasil ditolak. Sebelum menjawab, hitung dulu panjang tiap teks yang akan kamu isi. Target 70-85% dari batas maksimal, JANGAN mepet ke batas.
 - Jumlah slide HARUS sama dengan jumlah slide yang diminta, dengan "kind" yang sesuai urutan yang diberikan.
 - Caption maksimal 2.200 karakter. Hashtag 5 sampai 15 buah, tanpa tanda "#", huruf kecil, tanpa spasi.
 - Ikuti aturan bahasa (sapaan, istilah asing, format tanggal/angka, gaya judul) yang diberikan di bawah.
@@ -30,6 +30,9 @@ interface CopywriterInput {
   forbiddenKeywords: PersonaKeyword[];
   /** Diisi hanya saat percobaan retry setelah kata terlarang lolos ke output. */
   avoidWords?: string[];
+  /** Diisi hanya saat percobaan retry setelah output gagal validasi (mis.
+   * slot kepanjangan) — pesan dari LlmError, sudah berisi nama slot & batasnya. */
+  previousError?: string;
 }
 
 function formatSlots(spec: SlideSpec): string {
@@ -50,7 +53,11 @@ export function buildCopywriterUserPrompt(input: CopywriterInput): string {
   const retryNote = input.avoidWords?.length
     ? `\n\n# PERINGATAN — percobaan sebelumnya gagal
 Output sebelumnya memakai kata yang dilarang: ${input.avoidWords.join(", ")}. Tulis ulang tanpa kata-kata itu sama sekali, termasuk bentuk lain/turunan katanya.`
-    : "";
+    : input.previousError
+      ? `\n\n# PERINGATAN — percobaan sebelumnya gagal validasi
+${input.previousError}
+Tulis ulang HANYA slot-slot yang disebutkan di atas dengan versi yang lebih pendek — potong sampai jelas di bawah batas karakternya, sisakan margin, jangan mepet.`
+      : "";
 
   return `# Tema
 Topik: ${input.theme.topic}

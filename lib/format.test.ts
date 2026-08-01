@@ -7,6 +7,6 @@ describe("formatDateId", () => {
   });
 
   it("formats a date with time appended", () => {
-    expect(formatDateId("2026-08-01", "19:00")).toBe("01 Agu · 19:00");
+    expect(formatDateId("2026-08-01", "19:00")).toBe("01 Agu · 19:00 WIB");
   });
 });

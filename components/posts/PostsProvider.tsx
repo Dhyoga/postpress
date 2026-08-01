@@ -18,9 +18,11 @@ type PostsContextValue = {
   error: string | null;
   refresh: () => void;
   updateStatus: (id: string, status: PostStatus) => Promise<void>;
+  updateSchedule: (id: string, scheduledFor: string) => Promise<void>;
   addPost: (post: NewPostInput) => Promise<void>;
   removePost: (id: string) => Promise<void>;
   generatePost: (id: string) => Promise<void>;
+  publishNow: (id: string) => Promise<void>;
 };
 
 const PostsContext = createContext<PostsContextValue | null>(null);
@@ -57,6 +59,18 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function updateSchedule(id: string, scheduledFor: string) {
+    const res = await fetch(`/api/posts/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scheduledFor }),
+    });
+    if (!res.ok) {
+      throw new Error(`Gagal mengubah jadwal: ${res.status}`);
+    }
+    refresh();
+  }
+
   async function addPost(post: NewPostInput) {
     const res = await fetch("/api/posts", {
       method: "POST",
@@ -87,9 +101,28 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }
 
+  async function publishNow(id: string) {
+    const res = await fetch(`/api/posts/${encodeURIComponent(id)}/publish`, { method: "POST" });
+    if (!res.ok) {
+      throw new Error(`Gagal publish post: ${res.status}`);
+    }
+    refresh();
+  }
+
   return (
     <PostsContext.Provider
-      value={{ posts, loading, error: error ?? null, refresh, updateStatus, addPost, removePost, generatePost }}
+      value={{
+        posts,
+        loading,
+        error: error ?? null,
+        refresh,
+        updateStatus,
+        updateSchedule,
+        addPost,
+        removePost,
+        generatePost,
+        publishNow,
+      }}
     >
       {children}
     </PostsContext.Provider>

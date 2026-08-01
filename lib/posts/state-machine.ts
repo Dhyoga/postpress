@@ -37,3 +37,10 @@ export const IN_FLIGHT_STATUSES: PostStatus[] = ["generating", "publishing"];
 export function isDeletable(status: PostStatus): boolean {
   return status === "draft" || status === "rejected";
 }
+
+/** Jadwal cuma boleh diubah selama post belum benar-benar diproses ke Instagram
+ * — begitu "publishing" (sedang dikunci job publish:hourly/tombol Publish
+ * sekarang) atau "published", mengubah scheduledFor tidak berarti apa-apa lagi. */
+export function isScheduleEditable(status: PostStatus): boolean {
+  return status !== "publishing" && status !== "published";
+}

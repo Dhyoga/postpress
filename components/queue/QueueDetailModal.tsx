@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePosts } from "@/components/posts/PostsProvider";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { MiniSlide } from "@/components/slides/MiniSlide";
 import { formatDateId } from "@/lib/format";
 import { STATUS_LABEL } from "@/lib/status";
+import { isScheduleEditable } from "@/lib/posts/state-machine";
 
 export function QueueDetailModal({
   postId,
@@ -14,9 +16,49 @@ export function QueueDetailModal({
   postId: string | null;
   onClose: () => void;
 }) {
-  const { posts, updateStatus, removePost, generatePost } = usePosts();
+  const { posts, updateStatus, updateSchedule, removePost, generatePost, publishNow } = usePosts();
   const toast = useToast();
   const post = postId ? (posts.find((p) => p.id === postId) ?? null) : null;
+
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  useEffect(() => {
+    setScheduleDate(post?.date ?? "");
+    setScheduleTime(post?.time ?? "");
+  }, [post?.id, post?.date, post?.time]);
+
+  const scheduleChanged = !!post && (scheduleDate !== post.date || scheduleTime !== post.time);
+
+  async function handleSaveSchedule() {
+    if (!post || !scheduleDate) return;
+    setSavingSchedule(true);
+    try {
+      await updateSchedule(post.id, new Date(`${scheduleDate}T${scheduleTime || "19:00"}:00+07:00`).toISOString());
+      toast("Jadwal tayang diperbarui.");
+    } catch {
+      toast("Gagal mengubah jadwal. Coba lagi.");
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
+  async function handlePublishNow() {
+    if (!post) return;
+    setPublishing(true);
+    toast("Mempublish ke Instagram...");
+    try {
+      await publishNow(post.id);
+      toast("Berhasil dipublish ke Instagram.");
+      onClose();
+    } catch {
+      toast("Gagal publish. Cek Riwayat untuk detail error.");
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   function handleApprove() {
     if (!post) return;
@@ -78,6 +120,39 @@ export function QueueDetailModal({
               <br />
               Status &nbsp;&nbsp;&nbsp; <b>{STATUS_LABEL[post.status]}</b>
             </p>
+            {isScheduleEditable(post.status) ? (
+              <div className="field__row" style={{ marginTop: 14 }}>
+                <div className="field">
+                  <label htmlFor="qd-schedule-date">Tanggal tayang</label>
+                  <input
+                    type="date"
+                    id="qd-schedule-date"
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="qd-schedule-time">Jam (WIB)</label>
+                  <input
+                    type="time"
+                    id="qd-schedule-time"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                  />
+                </div>
+                {scheduleChanged ? (
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    disabled={savingSchedule}
+                    onClick={handleSaveSchedule}
+                    style={{ alignSelf: "flex-end" }}
+                  >
+                    {savingSchedule ? "Menyimpan..." : "Simpan jadwal"}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="modal__foot">
             {post.status === "needs_review" ? (
@@ -93,9 +168,14 @@ export function QueueDetailModal({
                 </button>
               </>
             ) : post.status === "approved" ? (
-              <button type="button" className="btn btn--ghost" onClick={handleUnapprove}>
-                Batalkan persetujuan
-              </button>
+              <>
+                <button type="button" className="btn btn--primary" disabled={publishing} onClick={handlePublishNow}>
+                  {publishing ? "Mempublish..." : "Publish sekarang"}
+                </button>
+                <button type="button" className="btn btn--ghost" onClick={handleUnapprove}>
+                  Batalkan persetujuan
+                </button>
+              </>
             ) : post.status === "draft" ? (
               <>
                 <button type="button" className="btn btn--primary" onClick={handleRegenerate}>
@@ -103,6 +183,16 @@ export function QueueDetailModal({
                 </button>
                 <button type="button" className="btn btn--danger" onClick={handleDelete}>
                   Hapus draf
+                </button>
+              </>
+            ) : post.status === "generating" ? (
+              <>
+                <p className="field__hint" style={{ marginBottom: 10 }}>
+                  Kalau statusnya nyangkut di sini lebih dari beberapa menit, proses sebelumnya kemungkinan
+                  terhenti di tengah jalan (mis. server restart). Aman untuk dicoba ulang.
+                </p>
+                <button type="button" className="btn btn--primary" onClick={handleRegenerate}>
+                  Coba generate ulang
                 </button>
               </>
             ) : null}

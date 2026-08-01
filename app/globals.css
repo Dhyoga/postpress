@@ -76,6 +76,10 @@
     @apply mt-4 px-[13px] py-[11px] border-l-[3px] border-magenta bg-magenta/[.07] text-[#96004E] text-[13.5px];
   }
 
+  .alert-detail {
+    @apply mt-[6px] px-[13px] py-[9px] font-mono text-[11px] text-slate bg-paper border border-rule rounded-[3px] whitespace-pre-wrap break-words;
+  }
+
   /* ============================================================
      SKELETON (loading state)
      ============================================================ */
