@@ -1,7 +1,5 @@
 import type { ProofSlideContent } from "@/lib/mock/proof-sheet";
 
-// eslint-disable-next-line @next/next/no-img-element -- gambar JPEG hasil render
-// disajikan dari R2 (domain eksternal), bukan aset lokal Next.js.
 export function SlideCard({
   content,
   index,
@@ -15,6 +13,7 @@ export function SlideCard({
     <figure className="slide">
       <div className="slide__frame">
         {content.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- JPEG hasil render disajikan dari R2 (domain eksternal), bukan aset lokal Next.js.
           <img className="slide__img" src={content.imageUrl} alt={content.heading || `Slide ${index}`} />
         ) : (
           <div className={`slide__canvas slide__canvas--${content.kind}`}>
