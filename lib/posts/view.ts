@@ -2,7 +2,7 @@ import type { PostStatus, PostType } from "@/lib/types";
 import type { PostEventEntry } from "@/lib/mock/types";
 import { wibDateString, wibTimeString } from "@/lib/format";
 
-type SlideRow = { position: number; kind: string };
+type SlideRow = { position: number; kind: string; imageUrl?: string | null };
 type PostEventRow = { message: string; ok: boolean; createdAt: Date | string };
 
 type PostRow = {
@@ -27,10 +27,9 @@ type PostRow = {
  */
 export function toPostView(row: PostRow) {
   const scheduled = row.scheduledFor ? new Date(row.scheduledFor) : null;
-  const slideKinds = (row.slides ?? [])
-    .slice()
-    .sort((a, b) => a.position - b.position)
-    .map((s) => s.kind);
+  const sortedSlides = (row.slides ?? []).slice().sort((a, b) => a.position - b.position);
+  const slideKinds = sortedSlides.map((s) => s.kind);
+  const slideImages = sortedSlides.map((s) => s.imageUrl ?? null);
   // Urut lama -> baru (narasi lifecycle post) — jangan andalkan orderBy di
   // query relasi, urutkan eksplisit di sini biar tidak tergantung perilaku
   // drizzle relational query.
@@ -52,6 +51,7 @@ export function toPostView(row: PostRow) {
     status: row.status as PostStatus,
     template: row.template,
     slideKinds,
+    slideImages,
     caption: row.caption ?? "",
     tags: row.hashtags?.join(" ") ?? "",
     error: row.errorMessage ?? undefined,

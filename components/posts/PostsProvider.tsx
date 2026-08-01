@@ -20,6 +20,7 @@ type PostsContextValue = {
   updateStatus: (id: string, status: PostStatus) => Promise<void>;
   updateSchedule: (id: string, scheduledFor: string) => Promise<void>;
   addPost: (post: NewPostInput) => Promise<void>;
+  uploadManualPost: (formData: FormData) => Promise<void>;
   removePost: (id: string) => Promise<void>;
   generatePost: (id: string) => Promise<void>;
   publishNow: (id: string) => Promise<void>;
@@ -83,6 +84,15 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
     refresh();
   }
 
+  async function uploadManualPost(formData: FormData) {
+    const res = await fetch("/api/posts/upload", { method: "POST", body: formData });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || `Gagal mengunggah post: ${res.status}`);
+    }
+    refresh();
+  }
+
   async function removePost(id: string) {
     const optimistic = posts.filter((p) => p.id !== id);
     setPosts(optimistic);
@@ -122,6 +132,7 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
         updateStatus,
         updateSchedule,
         addPost,
+        uploadManualPost,
         removePost,
         generatePost,
         publishNow,

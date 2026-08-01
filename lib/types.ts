@@ -2,9 +2,9 @@ export type PostStatus = "draft" | "generating" | "needs_review" | "approved" | 
 
 export type PostType = "single" | "carousel";
 
-export type TemplateId = "cover" | "point" | "quote" | "cta" | "cover_list";
+export type TemplateId = "cover" | "point" | "quote" | "cta" | "cover_list" | "manual";
 
-export type SlideKind = "cover" | "point" | "cta";
+export type SlideKind = "cover" | "point" | "cta" | "upload";
 
 export type SlideContent = Record<string, string>;
 

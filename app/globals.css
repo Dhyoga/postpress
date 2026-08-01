@@ -419,6 +419,39 @@
   .mini-slide__h {
     @apply mt-auto font-display font-extrabold text-[8px] leading-[1.1];
   }
+  .mini-slide--upload {
+    @apply relative overflow-hidden bg-ink p-0;
+  }
+  .mini-slide__img {
+    @apply w-full h-full object-cover;
+  }
+  .mini-slide--upload .mini-slide__k {
+    @apply absolute left-[5px] bottom-[5px] text-paper opacity-90;
+  }
+
+  /* grid pratinjau gambar di ManualUploadModal — beda dari .mini-strip (dipakai
+     modal detail Antrean) karena butuh kontrol urutan/hapus, bukan cuma pratinjau. */
+  .upload-grid {
+    @apply flex flex-wrap gap-[10px] mt-3;
+  }
+  .upload-thumb {
+    @apply relative w-20 aspect-[4/5] rounded-[3px] overflow-hidden border border-rule bg-paper-hi;
+  }
+  .upload-thumb img {
+    @apply w-full h-full object-cover;
+  }
+  .upload-thumb__order {
+    @apply absolute left-[5px] top-[5px] font-mono text-[10px] px-[5px] py-[1px] rounded-full bg-ink text-paper;
+  }
+  .upload-thumb__controls {
+    @apply absolute inset-x-0 bottom-0 flex justify-center gap-[4px] bg-ink/70 py-[3px];
+  }
+  .upload-thumb__controls button {
+    @apply text-paper bg-transparent border-0 cursor-pointer text-[13px] leading-none px-[4px];
+  }
+  .upload-thumb__controls button:disabled {
+    @apply opacity-30 cursor-not-allowed;
+  }
 
   .proof__body {
     @apply grid gap-8 items-start pt-[22px] border-t border-rule;

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { usePosts } from "@/components/posts/PostsProvider";
 import { NewPostModal } from "@/components/posts/NewPostModal";
+import { ManualUploadModal } from "@/components/posts/ManualUploadModal";
 import { useRegisterTopbarAction } from "@/components/dashboard/TopbarAction";
 import { TabBar } from "@/components/ui/TabBar";
 import { StatusChip } from "@/components/ui/StatusChip";
@@ -28,6 +29,7 @@ export function QueueView() {
   const searchParams = useSearchParams();
   const [filter, setFilter] = useTabQuery<QueueFilter>("filter", FILTER_VALUES, "all");
   const [postModalOpen, setPostModalOpen] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const openPostModal = useCallback(() => setPostModalOpen(true), []);
@@ -56,6 +58,9 @@ export function QueueView() {
           onChange={(value) => setFilter(value as QueueFilter)}
           ariaLabel="Filter antrean"
         />
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => setUploadModalOpen(true)}>
+          Upload manual
+        </button>
       </div>
       <div className="table-scroll">
         <table>
@@ -112,6 +117,7 @@ export function QueueView() {
       </div>
 
       <NewPostModal open={postModalOpen} onClose={() => setPostModalOpen(false)} />
+      <ManualUploadModal open={uploadModalOpen} onClose={() => setUploadModalOpen(false)} />
       <QueueDetailModal postId={detailId} onClose={() => setDetailId(null)} />
     </section>
   );

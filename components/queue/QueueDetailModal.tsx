@@ -109,7 +109,13 @@ export function QueueDetailModal({
           <div className="modal__body">
             <div className="mini-strip">
               {post.slideKinds.map((kind, i) => (
-                <MiniSlide key={i} kind={kind} index={i + 1} total={post.slideKinds.length} />
+                <MiniSlide
+                  key={i}
+                  kind={kind}
+                  index={i + 1}
+                  total={post.slideKinds.length}
+                  imageUrl={post.slideImages?.[i]}
+                />
               ))}
             </div>
             <p className="caption" style={{ fontSize: 13, maxWidth: "none" }}>
@@ -160,9 +166,11 @@ export function QueueDetailModal({
                 <button type="button" className="btn btn--primary" onClick={handleApprove}>
                   Setujui &amp; jadwalkan
                 </button>
-                <button type="button" className="btn btn--ghost" onClick={handleRegenerate}>
-                  Buat ulang
-                </button>
+                {post.template !== "manual" ? (
+                  <button type="button" className="btn btn--ghost" onClick={handleRegenerate}>
+                    Buat ulang
+                  </button>
+                ) : null}
                 <button type="button" className="btn btn--quiet" onClick={handleReject}>
                   Tolak draf ini
                 </button>

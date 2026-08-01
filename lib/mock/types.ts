@@ -4,7 +4,7 @@
 import type { PostStatus } from "@/lib/types";
 export type { PostStatus };
 export type PostType = "single" | "carousel";
-export type SlideBlockKind = "cover" | "point" | "quote" | "cta";
+export type SlideBlockKind = "cover" | "point" | "quote" | "cta" | "upload";
 
 /** Satu baris timeline lifecycle post yang bisa dibaca manusia ("Disetujui",
  * "Sedang diproses ke Instagram", dst) — sumbernya tabel `post_events`,
@@ -27,6 +27,7 @@ export type Post = {
   status: PostStatus;
   template: string;
   slideKinds: SlideBlockKind[];
+  slideImages: (string | null)[];
   caption: string;
   tags: string;
   igLink?: string;
