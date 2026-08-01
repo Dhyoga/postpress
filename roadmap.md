@@ -140,17 +140,34 @@ Fase paling berisiko secara teknis. Kerjakan sebelum menyentuh LLM — lebih mud
 
 ## Fase 4 — Publikasi (Minggu 4–5) · butuh App Review lolos
 
-- [ ] Klien Graph API dengan penanganan error terstruktur
-- [ ] Alur single post: container → publish
-- [ ] Alur carousel: children → parent → publish
-- [ ] Enkripsi token IG di database
-- [ ] Cek `content_publishing_limit` sebelum publish
-- [ ] Catat header `X-App-Usage` ke `publish_logs`
-- [ ] `publish:dry-run` untuk uji tanpa memanggil Meta
-- [ ] Retry backoff 1/5/25 menit, kecuali error auth (kode 190)
+- [x] Klien Graph API dengan penanganan error terstruktur
+- [x] Alur single post: container → publish
+- [x] Alur carousel: children → parent → publish
+- [x] Enkripsi token IG di database
+- [x] Cek `content_publishing_limit` sebelum publish
+- [x] Catat header `X-App-Usage` ke `publish_logs`
+- [x] `publish:dry-run` untuk uji tanpa memanggil Meta
+- [x] Retry backoff 1/5/25 menit, kecuali error auth (kode 190)
 - [ ] Publish pertama ke akun uji
 
 **Selesai kalau:** carousel 7 slide muncul di feed akun uji lewat satu perintah.
+
+> **Blocker (agent):** sama seperti dicatat di Fase 0 — publish sungguhan butuh
+> `instagram_content_publish` lolos App Review Meta plus token akun IG uji asli,
+> keduanya tidak bisa didapat coding agent. Semua yang bisa dikerjakan lewat kode
+> sudah selesai dan diverifikasi nyata: `lib/instagram/client.ts` (container,
+> carousel item, carousel parent, publish, `content_publishing_limit`, parsing
+> header `X-App-Usage`), `lib/instagram/token-crypto.ts` (AES-256-GCM,
+> round-trip diuji), `lib/instagram/retry.ts` (backoff 1/5/25 menit, kode 190
+> tidak di-retry), dan `lib/instagram/publish.ts` yang menyambungkan semuanya
+> plus mencatat tiap fase ke `publish_logs`. `pnpm cli publish:dry-run <post-id>`
+> dijalankan sungguhan melawan Postgres lokal (bukan cuma unit test) — carousel
+> 3-slide berhasil lewat container → carousel → publish tanpa memanggil Meta,
+> status post berpindah ke `published`, dan `publish_logs` berisi 6 baris (1 cek
+> kuota + 3 container + 1 carousel + 1 publish), semua `ok=true`. Alur carousel
+> Graph API juga diuji unit test dengan mock (`lib/instagram/publish.test.ts`),
+> termasuk urutan slide dipublish berdasarkan `position` (bukan urutan array) dan
+> kegagalan kode 190 yang tidak retryable.
 
 ---
 
