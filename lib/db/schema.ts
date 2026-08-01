@@ -182,6 +182,8 @@ export type PersonaSegment = typeof personaSegments.$inferSelect;
 export type NewPersonaSegment = typeof personaSegments.$inferInsert;
 export type PersonaKeyword = typeof personaKeywords.$inferSelect;
 export type NewPersonaKeyword = typeof personaKeywords.$inferInsert;
+export type LlmSettings = typeof llmSettings.$inferSelect;
+export type NewLlmSettings = typeof llmSettings.$inferInsert;
 
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
@@ -257,3 +259,18 @@ export const personaKeywordsRelations = relations(personaKeywords, ({ one }) => 
     references: [personas.id],
   }),
 }));
+
+// Konfigurasi LLM aktif (openspec/changes/dynamic-llm-settings-in-db) —
+// selalu satu baris `is_active = true`, sisanya (kalau ada) riwayat lama.
+// `api_key_encrypted` disimpan lewat lib/instagram/token-crypto.ts (AES-256-GCM),
+// dan TIDAK PERNAH keluar lewat API mentah — sama seperti ig_accounts.token_encrypted.
+export const llmSettings = pgTable("llm_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  provider: text("provider").notNull(),
+  baseUrl: text("base_url").notNull(),
+  apiKeyEncrypted: text("api_key_encrypted").notNull(),
+  model: text("model").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedBy: uuid("updated_by").references(() => users.id),
+});

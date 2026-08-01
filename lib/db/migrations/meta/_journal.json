@@ -15,6 +15,13 @@
       "when": 1785546612917,
       "tag": "0001_many_loners",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785586349770,
+      "tag": "0002_add_llm_settings",
+      "breakpoints": true
     }
   ]
 }

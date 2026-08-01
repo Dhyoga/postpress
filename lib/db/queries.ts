@@ -11,6 +11,7 @@ import {
   personas,
   personaSegments,
   personaKeywords,
+  llmSettings,
 } from "./schema";
 
 // -------------------- Users --------------------
@@ -276,4 +277,54 @@ export async function getSettingsSnapshot() {
       isActive: a.isActive,
     })),
   };
+}
+
+// -------------------- LLM settings --------------------
+// Selalu satu baris aktif (openspec/changes/dynamic-llm-settings-in-db) —
+// diambil terurut `updatedAt` menurun kalau suatu saat ada baris riwayat lama.
+export async function getActiveLlmSettings() {
+  return db.query.llmSettings.findFirst({
+    where: eq(llmSettings.isActive, true),
+    orderBy: [desc(llmSettings.updatedAt)],
+  });
+}
+
+/** Upsert baris konfigurasi tunggal. `apiKeyEncrypted` opsional supaya form
+ * Settings bisa kirim field kosong (password input) dan tetap mempertahankan
+ * kunci lama, bukan menimpanya dengan string kosong. */
+export async function upsertLlmSettings(input: {
+  provider: string;
+  baseUrl: string;
+  model: string;
+  apiKeyEncrypted?: string;
+  updatedBy?: string;
+}) {
+  const existing = await getActiveLlmSettings();
+  if (existing) {
+    const [row] = await db
+      .update(llmSettings)
+      .set({
+        provider: input.provider,
+        baseUrl: input.baseUrl,
+        model: input.model,
+        ...(input.apiKeyEncrypted ? { apiKeyEncrypted: input.apiKeyEncrypted } : {}),
+        isActive: true,
+        updatedAt: new Date(),
+        updatedBy: input.updatedBy,
+      })
+      .where(eq(llmSettings.id, existing.id))
+      .returning();
+    return row;
+  }
+  const [row] = await db
+    .insert(llmSettings)
+    .values({
+      provider: input.provider,
+      baseUrl: input.baseUrl,
+      model: input.model,
+      apiKeyEncrypted: input.apiKeyEncrypted ?? "",
+      updatedBy: input.updatedBy,
+    })
+    .returning();
+  return row;
 }

@@ -5,8 +5,30 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { FieldError } from "@/components/ui/FieldError";
 import { useApi, usePostMutation } from "@/lib/hooks/use-api";
+import { DEFAULT_BASE_URLS, type LlmProvider } from "@/lib/llm/providers";
 
 const DEFAULT_SCHEDULE = { weeklyPlanCron: "0 5 * * 0", dailyGenerateCron: "0 6 * * *", hourlyPublishCron: "0 * * * *" };
+
+const LLM_PROVIDER_LABELS: Record<LlmProvider, string> = {
+  mistral: "Mistral (resmi)",
+  gemini: "Gemini (resmi)",
+  claude: "Claude (lewat token router, mis. agentrouter/tokenrouter)",
+};
+
+const LLM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
+  mistral: "mistral-large-latest",
+  gemini: "gemini-2.5-pro",
+  claude: "claude-opus-5",
+};
+
+type LlmSettingsView = {
+  provider: LlmProvider;
+  baseUrl: string;
+  model: string;
+  hasApiKey: boolean;
+  source: "database" | "env" | "none";
+  updatedAt: string | null;
+};
 
 type SettingsSnapshot = {
   schedule: { weeklyPlanCron: string; dailyGenerateCron: string; hourlyPublishCron: string };
@@ -48,6 +70,15 @@ export function SettingsView() {
   const connectMutation = usePostMutation<ConnectIgBody, { account: IgAccountView }>();
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
 
+  const { data: llmSettings, refetch: refetchLlm } = useApi<LlmSettingsView>("/api/settings/llm");
+  const [llmProvider, setLlmProvider] = useState<LlmProvider>("mistral");
+  const [llmBaseUrl, setLlmBaseUrl] = useState("");
+  const [llmModel, setLlmModel] = useState("");
+  const [llmApiKey, setLlmApiKey] = useState("");
+  const [llmSaving, setLlmSaving] = useState(false);
+  const [llmSavedTag, setLlmSavedTag] = useState("");
+  const [llmErrors, setLlmErrors] = useState<{ baseUrl?: string; model?: string; apiKey?: string }>({});
+
   const [scheduleGenerate, setScheduleGenerate] = useState("06:00");
   const [scheduleWindowStart, setScheduleWindowStart] = useState("08:00");
   const [scheduleWindowEnd, setScheduleWindowEnd] = useState("21:00");
@@ -81,6 +112,54 @@ export function SettingsView() {
       setScheduleGenerate(`${String(Math.floor(start / 60)).padStart(2, "0")}:${String(start % 60).padStart(2, "0")}`);
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (!llmSettings) return;
+    setLlmProvider(llmSettings.provider);
+    setLlmBaseUrl(llmSettings.baseUrl);
+    setLlmModel(llmSettings.model);
+  }, [llmSettings]);
+
+  function handleLlmProviderChange(next: LlmProvider) {
+    setLlmProvider(next);
+    setLlmBaseUrl((prev) => (prev.trim() ? prev : DEFAULT_BASE_URLS[next]));
+  }
+
+  async function handleLlmSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const nextErrors: { baseUrl?: string; model?: string; apiKey?: string } = {};
+    if (!llmBaseUrl.trim()) nextErrors.baseUrl = "Base URL wajib diisi.";
+    if (!llmModel.trim()) nextErrors.model = "Nama model wajib diisi.";
+    if (!llmSettings?.hasApiKey && !llmApiKey.trim()) nextErrors.apiKey = "API key wajib diisi untuk konfigurasi baru.";
+    setLlmErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setLlmSaving(true);
+    try {
+      const res = await fetch("/api/settings/llm", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          provider: llmProvider,
+          baseUrl: llmBaseUrl.trim(),
+          model: llmModel.trim(),
+          apiKey: llmApiKey.trim() || undefined,
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (res.ok) {
+        toast("Konfigurasi LLM disimpan.");
+        setLlmApiKey("");
+        setLlmSavedTag("Tersimpan.");
+        setTimeout(() => setLlmSavedTag(""), 2500);
+        refetchLlm();
+      } else {
+        toast((json as { error?: string } | null)?.error || "Gagal menyimpan konfigurasi LLM.");
+      }
+    } finally {
+      setLlmSaving(false);
+    }
+  }
 
   function openConnectForm(account?: IgAccountView) {
     setIgFormErrors({});
@@ -217,9 +296,9 @@ export function SettingsView() {
         <div>
           <h1>Pengaturan</h1>
           <p>
-            Yang sering berubah ada di sini. Kredensial sistem (API key, secret Meta) tidak
-            ditaruh di UI — itu dikelola lewat environment variable oleh developer, lihat{" "}
-            <code>design.md</code> §11.
+            Yang sering berubah ada di sini. Kredensial provider LLM bisa diatur lewat form di
+            bawah; kredensial sistem lain (secret Meta) tetap dikelola lewat environment variable
+            oleh developer, lihat <code>design.md</code> §11.
           </p>
         </div>
       </div>
@@ -348,6 +427,79 @@ export function SettingsView() {
             </div>
           )}
         </div>
+
+        <form className="settings-card" onSubmit={handleLlmSubmit} noValidate>
+          <div className="settings-card__title">Konfigurasi LLM</div>
+          <p className="settings-card__desc">
+            Provider yang dipakai untuk generate rencana konten &amp; copy. API key disimpan
+            terenkripsi di server dan tidak pernah ditampilkan balik.
+          </p>
+          {llmSettings?.source === "env" ? (
+            <p className="field__hint">
+              Belum ada konfigurasi tersimpan di database — sekarang memakai fallback dari{" "}
+              <code>.env</code>. Simpan lewat form ini untuk mengelolanya dari sini.
+            </p>
+          ) : null}
+
+          <div className="field">
+            <label htmlFor="llm-provider">Provider</label>
+            <select
+              id="llm-provider"
+              value={llmProvider}
+              onChange={(e) => handleLlmProviderChange(e.target.value as LlmProvider)}
+            >
+              <option value="mistral">{LLM_PROVIDER_LABELS.mistral}</option>
+              <option value="gemini">{LLM_PROVIDER_LABELS.gemini}</option>
+              <option value="claude">{LLM_PROVIDER_LABELS.claude}</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label htmlFor="llm-base-url">Base URL</label>
+            <input
+              type="text"
+              id="llm-base-url"
+              placeholder={DEFAULT_BASE_URLS[llmProvider]}
+              value={llmBaseUrl}
+              className={llmErrors.baseUrl ? "border-magenta" : undefined}
+              onChange={(e) => setLlmBaseUrl(e.target.value)}
+            />
+            <FieldError message={llmErrors.baseUrl} />
+          </div>
+
+          <div className="field">
+            <label htmlFor="llm-model">Model</label>
+            <input
+              type="text"
+              id="llm-model"
+              placeholder={LLM_MODEL_PLACEHOLDER[llmProvider]}
+              value={llmModel}
+              className={llmErrors.model ? "border-magenta" : undefined}
+              onChange={(e) => setLlmModel(e.target.value)}
+            />
+            <FieldError message={llmErrors.model} />
+          </div>
+
+          <div className="field">
+            <label htmlFor="llm-api-key">API key</label>
+            <input
+              type="password"
+              id="llm-api-key"
+              placeholder={llmSettings?.hasApiKey ? "Kosongkan untuk pertahankan yang tersimpan" : "Wajib diisi"}
+              value={llmApiKey}
+              className={llmErrors.apiKey ? "border-magenta" : undefined}
+              onChange={(e) => setLlmApiKey(e.target.value)}
+            />
+            <FieldError message={llmErrors.apiKey} />
+          </div>
+
+          <div className="settings-card__foot">
+            <button type="submit" className="btn btn--primary btn--sm" disabled={llmSaving}>
+              {llmSaving ? "Menyimpan…" : "Simpan"}
+            </button>
+            <span className="saved-tag">{llmSavedTag}</span>
+          </div>
+        </form>
 
         <form className="settings-card" onSubmit={handleBrandSubmit} noValidate>
           <div className="settings-card__title">Jadwal</div>

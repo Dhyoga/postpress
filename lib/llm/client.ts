@@ -1,18 +1,9 @@
 import { z } from "zod";
+import { getLlmConfig } from "./settings";
+import { buildLlmRequest, extractToolInput } from "./providers";
+import { LlmError } from "./errors";
 
-const ANTHROPIC_VERSION = "2023-06-01";
-
-/** Error yang sampai ke pemanggil sudah berupa kalimat yang bisa ditindaklanjuti
- * (agents.md: "Error yang sampai ke UI harus kalimat yang bisa ditindaklanjuti
- * pengguna, bukan pesan teknis") — jangan pernah sertakan body respons mentah
- * atau header di sini, supaya token tidak ikut bocor ke log/pesan error. */
-export class LlmError extends Error {}
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new LlmError(`${name} belum diset di environment`);
-  return value;
-}
+export { LlmError };
 
 interface StructuredCallParams<T> {
   system: string;
@@ -32,34 +23,32 @@ interface StructuredCallParams<T> {
  * dan hasilnya divalidasi ulang dengan skema Zod yang sama sebelum dipakai —
  * tool-use hanya membatasi *bentuk*, bukan aturan seperti batas karakter yang
  * tetap harus dicek eksplisit oleh pemanggil.
+ *
+ * Konfigurasi (provider/base URL/API key/model) dibaca dari database lewat
+ * getLlmConfig() (openspec/changes/dynamic-llm-settings-in-db) — bukan
+ * process.env langsung — supaya bisa diganti dari Pengaturan tanpa redeploy.
  */
 export async function callStructured<T>(params: StructuredCallParams<T>): Promise<T> {
-  const baseUrl = requireEnv("ANTHROPIC_BASE_URL").replace(/\/+$/, "");
-  const token = requireEnv("ANTHROPIC_AUTH_TOKEN");
-  const model = requireEnv("ANTHROPIC_MODEL");
+  const config = await getLlmConfig();
 
   const jsonSchema = z.toJSONSchema(params.schema, { target: "draft-7" }) as Record<string, unknown>;
   delete jsonSchema.$schema;
 
+  const { url, init } = buildLlmRequest(config.provider, {
+    baseUrl: config.baseUrl,
+    apiKey: config.apiKey,
+    model: config.model,
+    system: params.system,
+    user: params.user,
+    toolName: params.toolName,
+    toolDescription: params.toolDescription,
+    jsonSchema,
+    temperature: params.temperature ?? 0.4,
+  });
+
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "anthropic-version": ANTHROPIC_VERSION,
-        "x-api-key": token,
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        temperature: params.temperature ?? 0.4,
-        system: params.system,
-        messages: [{ role: "user", content: params.user }],
-        tools: [{ name: params.toolName, description: params.toolDescription, input_schema: jsonSchema }],
-        tool_choice: { type: "tool", name: params.toolName },
-      }),
-    });
+    res = await fetch(url, init);
   } catch {
     throw new LlmError("Tidak bisa menghubungi layanan LLM. Coba lagi sebentar lagi.");
   }
@@ -68,13 +57,10 @@ export async function callStructured<T>(params: StructuredCallParams<T>): Promis
     throw new LlmError(`Layanan LLM merespons dengan error (HTTP ${res.status}).`);
   }
 
-  const body = (await res.json()) as { content?: Array<{ type: string; name?: string; input?: unknown }> };
-  const toolUse = body.content?.find((block) => block.type === "tool_use" && block.name === params.toolName);
-  if (!toolUse) {
-    throw new LlmError("LLM tidak mengembalikan output terstruktur yang diharapkan.");
-  }
+  const body = await res.json();
+  const toolInput = extractToolInput(config.provider, body, params.toolName);
 
-  const parsed = params.schema.safeParse(toolUse.input);
+  const parsed = params.schema.safeParse(toolInput);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new LlmError(`Output LLM tidak sesuai skema (${issues}).`);

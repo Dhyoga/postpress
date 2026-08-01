@@ -25,9 +25,7 @@ pnpm dev                # http://localhost:3000
 | `SESSION_SECRET` | ya | Random hex 32 byte, dipakai untuk menandatangani sesi. `openssl rand -hex 32`. |
 | `TOKEN_ENCRYPTION_KEY` | ya | Random hex 32 byte, dipakai AES-256-GCM untuk enkripsi token Instagram di kolom `ig_accounts.token_encrypted`. |
 | `CRON_SECRET` | ya | Token bearer yang wajib dikirim endpoint `app/api/cron/*` (`Authorization: Bearer <CRON_SECRET>`). |
-| `ANTHROPIC_AUTH_TOKEN` | ya (Fase 3+) | API key untuk klien LLM (kompatibel Anthropic Messages API). |
-| `ANTHROPIC_BASE_URL` | ya (Fase 3+) | Base URL API, default `https://api.anthropic.com`. |
-| `ANTHROPIC_MODEL` | ya (Fase 3+) | Nama model yang dipakai planner & copywriter. |
+| `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_BASE_URL` / `ANTHROPIC_MODEL` | opsional | Fallback klien LLM (format Anthropic Messages API) kalau belum ada konfigurasi tersimpan di database. Provider, base URL, API key, dan model normalnya diatur lewat Pengaturan → Konfigurasi LLM (disimpan terenkripsi di tabel `llm_settings`); lihat `openspec/changes/dynamic-llm-settings-in-db`. |
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | ya (Fase 2+) | Kredensial Cloudflare R2 untuk upload JPEG hasil render. |
 | `NEXT_PUBLIC_R2_BASE_URL` | ya (Fase 2+) | Base URL publik bucket R2 (custom domain atau `pub-xxx.r2.dev`), dipakai membentuk URL gambar. |
 | `META_APP_ID` / `META_APP_SECRET` | ya (Fase 4+) | Kredensial Meta Developer App untuk Graph API. |
