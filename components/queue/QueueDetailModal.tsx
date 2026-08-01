@@ -14,7 +14,7 @@ export function QueueDetailModal({
   postId: string | null;
   onClose: () => void;
 }) {
-  const { posts, updateStatus, removePost } = usePosts();
+  const { posts, updateStatus, removePost, generatePost } = usePosts();
   const toast = useToast();
   const post = postId ? (posts.find((p) => p.id === postId) ?? null) : null;
 
@@ -36,8 +36,16 @@ export function QueueDetailModal({
     toast("Draf ditolak, dikembalikan ke status draf.");
     onClose();
   }
-  function handleRegenerate() {
-    toast("Membuat ulang draf... (disimulasikan, tidak memanggil LLM sungguhan)");
+  async function handleRegenerate() {
+    if (!post) return;
+    toast("Membuat draf lewat LLM + render...");
+    try {
+      await generatePost(post.id);
+      toast("Draf selesai dibuat, siap direview.");
+    } catch {
+      toast("Gagal membuat draf. Coba lagi.");
+    }
+    onClose();
   }
   function handleDelete() {
     if (!post) return;

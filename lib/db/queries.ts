@@ -102,6 +102,19 @@ export async function createPublishLog(input: typeof publishLogs.$inferInsert) {
   return db.insert(publishLogs).values(input).returning();
 }
 
+/** 30 topik terakhir (dari post mana pun, bukan cuma yang sudah published) —
+ * dipakai prompt planner supaya tidak mengulang bahasan yang sama
+ * (design.md §6.1). */
+export async function listRecentTopics(accountId: string, limit = 30) {
+  const rows = await db.query.posts.findMany({
+    where: eq(posts.accountId, accountId),
+    orderBy: [desc(posts.createdAt)],
+    limit,
+    columns: { topic: true },
+  });
+  return rows.map((r) => r.topic);
+}
+
 // -------------------- Content plans --------------------
 export async function listContentPlans(accountId: string) {
   return db.query.contentPlans.findMany({

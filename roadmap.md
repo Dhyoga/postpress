@@ -110,15 +110,31 @@ Fase paling berisiko secara teknis. Kerjakan sebelum menyentuh LLM — lebih mud
 
 ## Fase 3 — Lapisan LLM (Minggu 3–4)
 
-- [ ] Klien LLM dengan structured output
-- [ ] Skema Zod: `plan.ts`, `copy.ts`
-- [ ] Prompt planner dibuat dari Persona (branding, DNA, segmentasi, kata kunci topik) + riwayat topik
-- [ ] Prompt copywriter dibuat dari registry template + `voice_pillars`/`voice_pairs`/aturan bahasa dari Persona
-- [ ] Validasi pasca-generate: tolak/retry kalau output memuat kata di `persona_keywords` kategori larangan
-- [ ] Validasi + retry sekali + jatuh ke `failed`
-- [ ] Sambungkan: topik → copy → render → JPEG di R2
+- [x] Klien LLM dengan structured output
+- [x] Skema Zod: `plan.ts`, `copy.ts`
+- [x] Prompt planner dibuat dari Persona (branding, DNA, segmentasi, kata kunci topik) + riwayat topik
+- [x] Prompt copywriter dibuat dari registry template + `voice_pillars`/`voice_pairs`/aturan bahasa dari Persona
+- [x] Validasi pasca-generate: tolak/retry kalau output memuat kata di `persona_keywords` kategori larangan
+- [x] Validasi + retry sekali + jatuh ke `failed`
+- [x] Sambungkan: topik → copy → render → JPEG di R2
 
 **Selesai kalau:** satu topik yang diketik manual, dengan Persona yang sudah diisi di Fase 1, menghasilkan carousel utuh dengan caption dan gaya yang konsisten — tanpa sentuhan tangan.
+
+> **Blocker (agent):** `lib/llm/client.ts` memaksa output terstruktur lewat tool-use
+> (`tool_choice` dipatok, skema Zod dikonversi ke JSON Schema lewat `z.toJSONSchema`
+> bawaan Zod v4 — tanpa dependensi SDK baru), dan seluruh pipeline
+> topik → copy → render → upload R2 → `needs_review` sudah tersambung lewat
+> `lib/jobs/generate.ts` + `POST /api/posts/[id]/generate` (dipakai tombol "Generate
+> sekarang"/"Buat ulang" di UI). Panggilan LLM sungguhan ke `ANTHROPIC_BASE_URL`
+> (`agentrouter.org`, sesuai `.env`) diblokir WAF Aliyun dari jaringan sandbox agent
+> ini (respons 200 tapi berisi halaman tantangan HTML, bukan JSON) — jalur error
+> sudah diuji end-to-end (post berakhir di status `failed` dengan `error_message`
+> yang bisa ditindaklanjuti, tanpa token bocor ke log), tapi keluaran LLM
+> sungguhan belum bisa diverifikasi dari sini. Manusia dengan akses jaringan
+> yang tidak diblokir WAF tinggal coba `POST /api/posts/:id/generate` pada akun
+> yang Persona-nya sudah terisi. Semua validator Zod (plan.ts, copy.ts,
+> forbidden-words, carousel skeleton) diuji unit test dengan mock, sesuai
+> agents.md ("Jangan tulis test yang memanggil LLM ... sungguhan").
 
 ---
 

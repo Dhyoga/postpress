@@ -12,6 +12,7 @@ type PostsContextValue = {
   updateStatus: (id: string, status: PostStatus) => Promise<void>;
   addPost: (post: Post) => Promise<void>;
   removePost: (id: string) => Promise<void>;
+  generatePost: (id: string) => Promise<void>;
 };
 
 const PostsContext = createContext<PostsContextValue | null>(null);
@@ -72,8 +73,18 @@ export function PostsProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function generatePost(id: string) {
+    const res = await fetch(`/api/posts/${encodeURIComponent(id)}/generate`, { method: "POST" });
+    if (!res.ok) {
+      throw new Error(`Gagal men-generate post: ${res.status}`);
+    }
+    refresh();
+  }
+
   return (
-    <PostsContext.Provider value={{ posts, loading, error: error ?? null, refresh, updateStatus, addPost, removePost }}>
+    <PostsContext.Provider
+      value={{ posts, loading, error: error ?? null, refresh, updateStatus, addPost, removePost, generatePost }}
+    >
       {children}
     </PostsContext.Provider>
   );

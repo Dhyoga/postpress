@@ -33,7 +33,7 @@ type DashboardStats = {
 };
 
 export function TodayView() {
-  const { loading: postsLoading, updateStatus } = usePosts();
+  const { loading: postsLoading, updateStatus, generatePost } = usePosts();
   const { data: statsRes, loading: statsLoading } = useApi<{ stats: DashboardStats[] }>("/api/dashboard/stats");
   const { data: proofRes, loading: slidesLoading } = useApi<{ post: Post | null; slides: ProofSlideContent[] }>("/api/dashboard/proof-sheet");
   const toast = useToast();
@@ -56,8 +56,15 @@ export function TodayView() {
     updateStatus(featured.id, "needs_review");
     toast("Draf ditolak, dikembalikan ke status review.");
   }
-  function handleRegenerate() {
-    toast("Membuat ulang draf... (disimulasikan, tidak memanggil LLM sungguhan)");
+  async function handleRegenerate() {
+    if (!featured) return;
+    toast("Membuat draf lewat LLM + render...");
+    try {
+      await generatePost(featured.id);
+      toast("Draf selesai dibuat, siap direview.");
+    } catch {
+      toast("Gagal membuat draf. Coba lagi.");
+    }
   }
 
   if (loading) {
