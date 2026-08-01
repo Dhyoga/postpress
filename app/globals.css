@@ -355,6 +355,9 @@
   .slide__canvas {
     @apply aspect-[4/5] rounded-[3px] p-4 flex flex-col overflow-hidden;
   }
+  .slide__img {
+    @apply aspect-[4/5] rounded-[3px] w-full object-cover;
+  }
   .slide__canvas--cover {
     @apply bg-ink text-paper;
   }

@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, lte } from "drizzle-orm";
 import {
   users,
   sessions,
@@ -74,8 +74,26 @@ export async function createPost(input: typeof posts.$inferInsert) {
   return db.insert(posts).values(input).returning();
 }
 
+/** Penjaga idempotensi `generate:daily` (Fase 5) — supaya cron yang jalan dua
+ * kali untuk tanggal yang sama tidak membuat post duplikat. */
+export async function findPostByTopic(accountId: string, topic: string) {
+  return db.query.posts.findFirst({
+    where: and(eq(posts.accountId, accountId), eq(posts.topic, topic)),
+  });
+}
+
+/** Post `approved` yang jadwalnya sudah lewat — dipakai `publish:hourly` (Fase 5). */
+export async function listDuePosts(limit = 20) {
+  return db.query.posts.findMany({
+    where: and(eq(posts.status, "approved"), lte(posts.scheduledFor, new Date())),
+    orderBy: posts.scheduledFor,
+    limit,
+    with: { slides: true },
+  });
+}
+
 export async function updatePost(id: string, input: Partial<typeof posts.$inferInsert>) {
-  return db.update(posts).set(input).where(eq(posts.id, id)).returning();
+  return db.update(posts).set({ ...input, updatedAt: new Date() }).where(eq(posts.id, id)).returning();
 }
 
 export async function deletePost(id: string) {
@@ -100,6 +118,16 @@ export async function replaceSlides(postId: string, items: typeof slides.$inferI
 
 export async function createPublishLog(input: typeof publishLogs.$inferInsert) {
   return db.insert(publishLogs).values(input).returning();
+}
+
+/** Percobaan publish terakhir (nomor + waktu) untuk sebuah post — dipakai
+ * `publish:hourly` (Fase 5) menghitung apakah jendela backoff 1/5/25 menit
+ * sudah lewat sebelum retry. */
+export async function getLastPublishAttempt(postId: string) {
+  return db.query.publishLogs.findFirst({
+    where: eq(publishLogs.postId, postId),
+    orderBy: [desc(publishLogs.createdAt)],
+  });
 }
 
 /** 30 topik terakhir (dari post mana pun, bukan cuma yang sudah published) —

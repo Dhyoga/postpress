@@ -25,11 +25,19 @@ export async function GET() {
     { label: "Gagal terbit", value: String(failed[0]?.count ?? 0), meta: "Perlu perhatian" },
   ];
 
-  const featured = await db.query.posts.findFirst({
-    where: eq(posts.status, "approved"),
-    orderBy: [desc(posts.createdAt)],
-    with: { slides: true },
-  });
+  // Proof sheet menampilkan post yang PALING butuh perhatian manusia dulu:
+  // needs_review (belum diputuskan) sebelum approved (sudah oke, tinggal jadwal).
+  const featured =
+    (await db.query.posts.findFirst({
+      where: eq(posts.status, "needs_review"),
+      orderBy: [desc(posts.createdAt)],
+      with: { slides: true },
+    })) ??
+    (await db.query.posts.findFirst({
+      where: eq(posts.status, "approved"),
+      orderBy: [desc(posts.createdAt)],
+      with: { slides: true },
+    }));
 
   let proofSlides: ProofSlideContent[] = [];
   if (featured?.slides?.length) {
@@ -43,6 +51,7 @@ export async function GET() {
           kicker: content.eyebrow ?? content.index ?? "",
           heading: content.title ?? content.heading ?? "",
           body: content.subtitle ?? content.body ?? "",
+          imageUrl: s.imageUrl,
         };
       });
   }

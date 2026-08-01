@@ -64,6 +64,11 @@ export const posts = pgTable(
     igMediaId: text("ig_media_id"),
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // Dipakai sweeper (design.md §5 & §10, job `sweep:stuck`) untuk tahu SUDAH
+    // BERAPA LAMA post berada di status sekarang — bukan kapan barisnya dibuat.
+    // lib/db/queries.ts#updatePost() selalu mengisi ulang kolom ini di tiap
+    // update, termasuk tiap pindah status.
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({
     accountIdIdx: index("posts_account_id_idx").on(t.accountId),

@@ -35,9 +35,13 @@ type DashboardStats = {
 export function TodayView() {
   const { loading: postsLoading, updateStatus, generatePost } = usePosts();
   const { data: statsRes, loading: statsLoading } = useApi<{ stats: DashboardStats[] }>("/api/dashboard/stats");
-  const { data: proofRes, loading: slidesLoading } = useApi<{ post: Post | null; slides: ProofSlideContent[] }>("/api/dashboard/proof-sheet");
+  const { data: proofRes, loading: slidesLoading, refetch: refetchProof } = useApi<{ post: Post | null; slides: ProofSlideContent[] }>(
+    "/api/dashboard/proof-sheet",
+  );
   const toast = useToast();
   const [postModalOpen, setPostModalOpen] = useState(false);
+  const [captionDraft, setCaptionDraft] = useState<string | null>(null);
+  const [savingCaption, setSavingCaption] = useState(false);
 
   useRegisterTopbarAction("Buat post baru", () => setPostModalOpen(true));
 
@@ -45,6 +49,26 @@ export function TodayView() {
   const stats = statsRes?.stats ?? [];
   const proofSlides = proofRes?.slides ?? [];
   const featured = proofRes?.post ?? null;
+
+  async function handleSaveCaption() {
+    if (!featured || captionDraft === null) return;
+    setSavingCaption(true);
+    try {
+      const res = await fetch(`/api/posts/${encodeURIComponent(featured.id)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ caption: captionDraft }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setCaptionDraft(null);
+      refetchProof();
+      toast("Caption disimpan.");
+    } catch {
+      toast("Gagal menyimpan caption.");
+    } finally {
+      setSavingCaption(false);
+    }
+  }
 
   function handleApprove() {
     if (!featured) return;
@@ -130,7 +154,19 @@ export function TodayView() {
 
             <div className="proof__body">
               <div>
-                <p className="caption">{featured.caption ?? ""}</p>
+                <textarea
+                  className="caption caption--editable"
+                  style={{ width: "100%", resize: "vertical", minHeight: 72 }}
+                  value={captionDraft ?? featured.caption ?? ""}
+                  onChange={(e) => setCaptionDraft(e.target.value)}
+                  maxLength={2200}
+                  aria-label="Caption"
+                />
+                {captionDraft !== null && captionDraft !== (featured.caption ?? "") ? (
+                  <button type="button" className="btn btn--ghost btn--sm" disabled={savingCaption} onClick={handleSaveCaption}>
+                    {savingCaption ? "Menyimpan..." : "Simpan caption"}
+                  </button>
+                ) : null}
                 <p className="caption__tags">{featured.tags ?? ""}</p>
               </div>
               <div className="proof__side">

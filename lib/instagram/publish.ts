@@ -123,7 +123,10 @@ async function checkPublishingLimit(client: GraphClient, igUserId: string, postI
 export async function attemptPublish(postId: string, attempt: number, deps: PublishDeps = {}): Promise<PublishAttemptResult> {
   const post = await getPost(postId);
   if (!post) throw new Error(`Post ${postId} tidak ditemukan`);
-  if (post.status !== "approved" && post.status !== "failed") {
+  // "publishing" diterima juga karena `publish:hourly` (Fase 5) mengunci dan
+  // meng-klaim baris (pindah ke "publishing") di transaksi terpisah sebelum
+  // memanggil fungsi ini, supaya klaim antar-invocation cron tidak balapan.
+  if (post.status !== "approved" && post.status !== "failed" && post.status !== "publishing") {
     throw new PublishBlockedError("Hanya post berstatus approved (atau failed yang di-retry) yang boleh dipublish");
   }
   if (!post.slides.length) {
@@ -134,10 +137,14 @@ export async function attemptPublish(postId: string, attempt: number, deps: Publ
   if (!account) throw new Error("Akun IG untuk post ini tidak ditemukan");
 
   await updatePost(postId, { status: "publishing" });
-  const client = deps.client ?? new GraphClient(decryptToken(account.tokenEncrypted));
   const sortedSlides = [...post.slides].sort((a, b) => a.position - b.position);
 
   try {
+    // Sengaja di dalam try: token rusak/salah format atau
+    // TOKEN_ENCRYPTION_KEY salah harus jatuh ke "failed" seperti kegagalan
+    // publish lain, bukan melempar tak tertangani dan meninggalkan post
+    // macet selamanya di status "publishing".
+    const client = deps.client ?? new GraphClient(decryptToken(account.tokenEncrypted));
     await checkPublishingLimit(client, account.igUserId, postId, attempt);
 
     const mediaId =

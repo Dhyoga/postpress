@@ -173,17 +173,37 @@ Fase paling berisiko secara teknis. Kerjakan sebelum menyentuh LLM — lebih mud
 
 ## Fase 5 — Alur review & otomasi (Minggu 5–6)
 
-- [ ] Proof sheet: lihat JPEG hasil render sungguhan, bukan pratinjau HTML
-- [ ] Tombol setujui, tolak, buat ulang
-- [ ] Edit caption sebelum terbit
-- [ ] State machine post beserta sweeper untuk job macet
-- [ ] Cron `generate:daily` 06:00 WIB
-- [ ] Cron `publish:hourly`
-- [ ] Cron `plan:weekly`
-- [ ] Lock baris (`FOR UPDATE SKIP LOCKED`) supaya tidak ada post ganda
-- [ ] Notifikasi kalau job gagal (email atau Telegram)
+- [x] Proof sheet: lihat JPEG hasil render sungguhan, bukan pratinjau HTML
+- [x] Tombol setujui, tolak, buat ulang
+- [x] Edit caption sebelum terbit
+- [x] State machine post beserta sweeper untuk job macet
+- [x] Cron `generate:daily` 06:00 WIB
+- [x] Cron `publish:hourly`
+- [x] Cron `plan:weekly`
+- [x] Lock baris (`FOR UPDATE SKIP LOCKED`) supaya tidak ada post ganda
+- [x] Notifikasi kalau job gagal (email atau Telegram)
 
 **Selesai kalau:** sistem jalan tujuh hari berturut-turut tanpa intervensi selain klik setujui.
+
+> Catatan: keempat cron (`/api/cron/generate-daily`, `/publish-hourly`,
+> `/plan-weekly`, `/sweep-stuck`) dilindungi `CRON_SECRET` (header
+> `Authorization: Bearer`) lewat `lib/jobs/cron-auth.ts`, penjadwalan waktu
+> sungguhan (systemd timer/Vercel Cron/dst.) belum dipasang — endpoint tinggal
+> dipanggil dari penjadwal pilihan. `sweep:stuck` butuh kolom baru
+> `posts.updated_at` (migration `0001_many_loners.sql`) karena skema semula
+> tidak punya cara tahu SUDAH BERAPA LAMA sebuah post ada di status
+> `generating`/`publishing` — `createdAt` cuma menunjukkan kapan baris dibuat.
+> Diverifikasi nyata lewat Postgres lokal: sweeper memindahkan post yang
+> di-backdate ke `failed`; `publish:hourly` mengklaim post `approved` yang
+> jadwalnya lewat lewat `FOR UPDATE SKIP LOCKED`, benar-benar memanggil
+> `graph.facebook.com` (bukan diblokir WAF seperti `agentrouter.org` di Fase 3),
+> dan menangani respons error asli ("Invalid OAuth access token") dengan benar
+> — post berpindah ke `failed` tanpa macet di `publishing`. Perbaikan bug nyata
+> ditemukan lewat uji ini: `attemptPublish()` awalnya mendekripsi token IG DI
+> LUAR blok try/catch, jadi token rusak/`TOKEN_ENCRYPTION_KEY` salah membuat
+> post macet selamanya di status `publishing` alih-alih jatuh ke `failed`.
+> `plan:weekly`/`generate:daily` diverifikasi gagal dengan baik saat LLM
+> terblokir WAF (lihat blocker Fase 3), tidak menjatuhkan seluruh proses cron.
 
 ---
 
