@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { FieldError } from "@/components/ui/FieldError";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -17,11 +17,16 @@ const MIX_ROWS: { key: keyof ContentMix; label: string }[] = [
 type BrandingErrors = { name?: string; mix?: string; frequency?: string };
 
 export function BrandingPanel() {
-  const { persona, setPersona, loading } = usePersona();
+  const { persona, savePersona, loading } = usePersona();
   const toast = useToast();
   const [draft, setDraft] = useState(persona.branding);
   const [savedTag, setSavedTag] = useState("");
   const [errors, setErrors] = useState<BrandingErrors>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDraft(persona.branding);
+  }, [persona.branding]);
 
   const mixSum = MIX_ROWS.reduce((sum, { key }) => sum + (draft.mix[key] || 0), 0);
 
@@ -40,15 +45,22 @@ export function BrandingPanel() {
     return next;
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    setPersona((prev) => ({ ...prev, branding: draft }));
-    setSavedTag("Tersimpan.");
-    toast("Branding disimpan.");
-    setTimeout(() => setSavedTag(""), 2500);
+    setSaving(true);
+    try {
+      await savePersona({ branding: draft });
+      setSavedTag("Tersimpan.");
+      toast("Branding disimpan.");
+      setTimeout(() => setSavedTag(""), 2500);
+    } catch {
+      toast("Gagal menyimpan branding. Coba lagi.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
@@ -167,8 +179,8 @@ export function BrandingPanel() {
       </div>
 
       <div className="settings-card__foot">
-        <button type="submit" className="btn btn--primary btn--sm">
-          Simpan
+        <button type="submit" className="btn btn--primary btn--sm" disabled={saving}>
+          {saving ? "Menyimpan..." : "Simpan"}
         </button>
         <span className="saved-tag">{savedTag}</span>
       </div>

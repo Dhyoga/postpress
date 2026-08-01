@@ -1,40 +1,79 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
-import { useIsMockEmpty, useMockQuery } from "@/lib/hooks/use-mock-query";
-import { MOCK_POSTS, MOCK_POSTS_EMPTY } from "@/lib/mock/posts";
+import { createContext, useContext, useState, useEffect } from "react";
+import { useApi } from "@/lib/hooks/use-api";
 import type { Post, PostStatus } from "@/lib/mock/types";
 
 type PostsContextValue = {
   posts: Post[];
   loading: boolean;
-  updateStatus: (id: string, status: PostStatus) => void;
-  addPost: (post: Post) => void;
-  removePost: (id: string) => void;
+  error: string | null;
+  refresh: () => void;
+  updateStatus: (id: string, status: PostStatus) => Promise<void>;
+  addPost: (post: Post) => Promise<void>;
+  removePost: (id: string) => Promise<void>;
 };
 
 const PostsContext = createContext<PostsContextValue | null>(null);
 
-// Menyimpan state posts di memori client, padanan `var posts` global di prototipe
-// index.html — supaya aksi approve/reject/tambah draf terasa hidup lintas halaman
-// tanpa backend. TODO: ganti ke query + mutation lib/db/queries/posts setelah Supabase siap.
 export function PostsProvider({ children }: { children: React.ReactNode }) {
-  const isEmpty = useIsMockEmpty();
-  const { data: seedPosts, loading } = useMockQuery(isEmpty ? MOCK_POSTS_EMPTY : MOCK_POSTS);
-  const [posts, setPosts] = useState<Post[]>(seedPosts);
+  const { data, loading, error, refetch } = useApi<{ posts: Post[] }>("/api/posts");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  function updateStatus(id: string, status: PostStatus) {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const id = window.localStorage.getItem("demo_user_id");
+      if (id) setCurrentUserId(id);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (data?.posts) setPosts(data.posts);
+  }, [data]);
+
+  const refresh = () => refetch();
+
+  async function updateStatus(id: string, status: PostStatus) {
+    const optimistic = posts.map((p) => (p.id === id ? { ...p, status } : p));
+    setPosts(optimistic);
+    const res = await fetch(`/api/posts/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) {
+      setPosts(posts);
+      throw new Error(`Gagal memperbarui status: ${res.status}`);
+    }
   }
-  function addPost(post: Post) {
-    setPosts((prev) => [...prev, post]);
+
+  async function addPost(post: Post) {
+    const optimistic = [...posts, post];
+    setPosts(optimistic);
+    const res = await fetch("/api/posts", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(post),
+    });
+    if (!res.ok) {
+      setPosts(posts);
+      throw new Error(`Gagal menambahkan post: ${res.status}`);
+    }
   }
-  function removePost(id: string) {
-    setPosts((prev) => prev.filter((p) => p.id !== id));
+
+  async function removePost(id: string) {
+    const optimistic = posts.filter((p) => p.id !== id);
+    setPosts(optimistic);
+    const res = await fetch(`/api/posts/${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      setPosts(posts);
+      throw new Error(`Gagal menghapus post: ${res.status}`);
+    }
   }
 
   return (
-    <PostsContext.Provider value={{ posts, loading, updateStatus, addPost, removePost }}>
+    <PostsContext.Provider value={{ posts, loading, error: error ?? null, refresh, updateStatus, addPost, removePost }}>
       {children}
     </PostsContext.Provider>
   );

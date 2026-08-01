@@ -26,7 +26,7 @@ export function QueueDetailModal({
   }
   function handleUnapprove() {
     if (!post) return;
-    updateStatus(post.id, "review");
+    updateStatus(post.id, "needs_review");
     toast("Persetujuan dibatalkan, kembali ke review.");
     onClose();
   }
@@ -72,7 +72,7 @@ export function QueueDetailModal({
             </p>
           </div>
           <div className="modal__foot">
-            {post.status === "review" ? (
+            {post.status === "needs_review" ? (
               <>
                 <button type="button" className="btn btn--primary" onClick={handleApprove}>
                   Setujui &amp; jadwalkan

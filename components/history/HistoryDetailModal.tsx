@@ -18,7 +18,7 @@ export function HistoryDetailModal({
 
   function handleRetry() {
     if (!post) return;
-    updateStatus(post.id, "review");
+    updateStatus(post.id, "needs_review");
     toast("Dijadwalkan untuk dicoba lagi, masuk ke Antrean.");
     onClose();
   }

@@ -49,26 +49,29 @@ Fase 6                                 ████
 
 Target: bisa login, lihat dashboard kosong yang jujur, dan Persona akun bisa diisi lengkap sebelum Fase 3 butuh datanya.
 
-- [ ] Skema `users` + `sessions`, migration
-- [ ] `pnpm cli user:create` dengan prompt password interaktif
-- [ ] Login: bcrypt, cookie sesi, rate limit 5 percobaan/15 menit
-- [ ] Middleware proteksi `/dashboard/*` dan `/api/*`
+- [x] Skema `users` + `sessions`, migration
+- [x] `pnpm cli user:create` dengan prompt password interaktif
+- [x] Login: bcrypt, cookie sesi, rate limit 5 percobaan/15 menit
+- [x] Middleware proteksi `/dashboard/*` dan `/api/*`
 - [x] Layout dashboard sesuai `index.html`
 - [x] Empty state: dashboard tanpa data mengarahkan ke tindakan, bukan sekadar kosong
-- [ ] Logout dan pencabutan sesi
-- [ ] Skema `personas`, `persona_segments`, `persona_keywords`, migration
-- [ ] CRUD Persona: Branding/DNA/Visual sebagai form, Segmentasi/Kata Kunci sebagai list
-- [ ] Endpoint create/update yang sama dipakai baik dari form manual maupun hasil parse Excel (lihat `agents.md` aturan #6)
+- [x] Logout dan pencabutan sesi
+- [x] Skema `personas`, `persona_segments`, `persona_keywords`, migration
+- [x] CRUD Persona: Branding/DNA/Visual sebagai form, Segmentasi/Kata Kunci sebagai list
+- [x] Endpoint create/update yang sama dipakai baik dari form manual maupun hasil parse Excel (lihat `agents.md` aturan #6)
 - [x] Import Excel client-side (SheetJS) untuk Segmentasi dan Kata Kunci, plus unduh template
 
 **Selesai kalau:** admin bisa buat akun lewat CLI, orang lain login, sesi bertahan setelah restart server, dan Persona akun terisi lengkap (manual atau Excel) sebelum mulai Fase 3.
 
-> Catatan: tiga item bercentang di atas baru selesai di sisi UI (slicing `index.html` ke
-> Next.js dengan mock data lokal, lihat `lib/mock/`). Form Persona (Branding/DNA/Visual)
-> dan CRUD Segmentasi/Kata Kunci sudah jadi komponen React lengkap tapi belum dicentang
-> karena datanya masih di state client, bukan tabel `personas`/`persona_segments`/
-> `persona_keywords` sungguhan — item itu baru "selesai" setelah Supabase + endpoint
-> terpasang.
+> Catatan: semua item di atas kini disokong tabel sungguhan (`users`, `sessions`,
+> `personas`, `persona_segments`, `persona_keywords` lewat migration
+> `lib/db/migrations/0000_lying_black_tom.sql`) dan diverifikasi end-to-end lewat
+> `pnpm cli user:create` + login + `POST/GET /api/persona`, `/api/persona/segments`,
+> `/api/persona/keywords` melawan Postgres lokal. `components/dashboard/*`,
+> `components/queue/*`, `components/history/*` (Antrean/Riwayat/Hari-ini) masih
+> memakai bentuk tipe dari `lib/mock/types.ts` (field `date`/`time`/`slideKinds`)
+> alih-alih baris `posts`/`slides` asli — penyesuaian itu masuk lingkup Fase 5
+> ("Proof sheet ... tombol setujui/tolak/buat ulang"), bukan Fase 1.
 
 ---
 
@@ -76,18 +79,30 @@ Target: bisa login, lihat dashboard kosong yang jujur, dan Persona akun bisa dii
 
 Fase paling berisiko secara teknis. Kerjakan sebelum menyentuh LLM — lebih mudah men-debug layout dengan teks yang kamu tulis sendiri.
 
-- [ ] Pasang `satori`, `@resvg/resvg-js`, `sharp`
-- [ ] Load font `.ttf`/`.otf` sebagai ArrayBuffer (bukan `.woff2`)
-- [ ] `lib/render/render.ts`: SVG → PNG → JPEG 1080×1350
-- [ ] Registry template dengan skema slot + batas karakter
-- [ ] Template `cover`
-- [ ] Template `point`
-- [ ] Template `cta`
-- [ ] `pnpm cli render:preview` untuk lihat hasil tanpa jalankan app
-- [ ] Snapshot test SVG per template
-- [ ] Upload ke R2, verifikasi URL publik bisa diakses dari luar jaringan lokal
+- [x] Pasang `satori`, `@resvg/resvg-js`, `sharp`
+- [x] Load font `.ttf`/`.otf` sebagai ArrayBuffer (bukan `.woff2`)
+- [x] `lib/render/render.ts`: SVG → PNG → JPEG 1080×1350
+- [x] Registry template dengan skema slot + batas karakter
+- [x] Template `cover`
+- [x] Template `point`
+- [x] Template `cta`
+- [x] `pnpm cli render:preview` untuk lihat hasil tanpa jalankan app
+- [x] Snapshot test SVG per template
+- [x] Upload ke R2, verifikasi URL publik bisa diakses dari luar jaringan lokal
 
 **Selesai kalau:** perintah CLI menghasilkan 7 JPEG yang layak posting, dan URL-nya bisa dibuka dari HP di jaringan seluler.
+
+> Catatan: `lib/render/fonts/*.ttf` yang ada sebelumnya sebenarnya file WOFF2 yang
+> diganti ekstensi (`file` melaporkan "Web Open Font Format 2") — Satori langsung
+> gagal baca ("Unsupported OpenType signature wOF2"), persis risiko yang disebut
+> agents.md §1. Diganti dengan instance TrueType statis asli per berat
+> (`fonttools varLib.instancer` dari font variabel Google Fonts, sumber terbuka
+> lisensi OFL yang sama), karena Satori/opentype.js juga gagal parse font variable
+> modern langsung (`Cannot read properties of undefined (reading '256')` saat baca
+> tabel `glyf`/`gvar`). Template `quote` juga ikut dibuat meski tidak wajib di
+> checklist ini (sudah ada di registry & design.md §7.3). Upload R2 diverifikasi
+> nyata: render 1 JPEG → upload → `fetch()` URL publik dari sandbox ini (200 OK,
+> `image/jpeg`) → objek uji dihapus lagi.
 
 **Risiko:** teks meluber tanpa error. Uji tiap template dengan teks di batas maksimum, bukan teks pendek yang nyaman.
 

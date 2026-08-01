@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { FieldError } from "@/components/ui/FieldError";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -18,19 +18,24 @@ const COLOR_ROWS: { key: keyof PersonaColors; label: string }[] = [
 const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
 
 export function VisualPanel() {
-  const { persona, setPersona, loading } = usePersona();
+  const { persona, savePersona, loading } = usePersona();
   const toast = useToast();
   const [draft, setDraft] = useState(persona.visual);
   const [savedTag, setSavedTag] = useState("");
+  const [saving, setSaving] = useState(false);
   const [colorErrors, setColorErrors] = useState<Partial<Record<keyof PersonaColors, string>>>(
     {},
   );
+
+  useEffect(() => {
+    setDraft(persona.visual);
+  }, [persona.visual]);
 
   function setColor(key: keyof PersonaColors, hex: string) {
     setDraft((d) => ({ ...d, colors: { ...d.colors, [key]: hex } }));
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const nextErrors: Partial<Record<keyof PersonaColors, string>> = {};
     COLOR_ROWS.forEach(({ key }) => {
@@ -40,10 +45,17 @@ export function VisualPanel() {
     });
     setColorErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    setPersona((prev) => ({ ...prev, visual: draft }));
-    setSavedTag("Tersimpan.");
-    toast("Visual disimpan.");
-    setTimeout(() => setSavedTag(""), 2500);
+    setSaving(true);
+    try {
+      await savePersona({ visual: draft });
+      setSavedTag("Tersimpan.");
+      toast("Visual disimpan.");
+      setTimeout(() => setSavedTag(""), 2500);
+    } catch {
+      toast("Gagal menyimpan visual. Coba lagi.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
@@ -133,8 +145,8 @@ export function VisualPanel() {
       </div>
 
       <div className="settings-card__foot">
-        <button type="submit" className="btn btn--primary btn--sm">
-          Simpan
+        <button type="submit" className="btn btn--primary btn--sm" disabled={saving}>
+          {saving ? "Menyimpan..." : "Simpan"}
         </button>
         <span className="saved-tag">{savedTag}</span>
       </div>

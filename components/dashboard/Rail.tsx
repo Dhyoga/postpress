@@ -10,7 +10,7 @@ import { LogoutButton } from "./LogoutButton";
 export function Rail() {
   const pathname = usePathname();
   const { posts } = usePosts();
-  const todayBadge = posts.filter((p) => p.status === "review").length;
+  const todayBadge = posts.filter((p) => p.status === "needs_review").length;
   const queueBadge = posts.filter((p) => QUEUE_STATUSES.includes(p.status)).length;
 
   return (

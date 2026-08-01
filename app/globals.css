@@ -309,6 +309,15 @@
   .chip--draft {
     @apply border border-rule text-slate;
   }
+  .chip--generating {
+    @apply bg-ultra/10 text-ultra;
+  }
+  .chip--rejected {
+    @apply bg-magenta text-white;
+  }
+  .chip--publishing {
+    @apply bg-ultra/10 text-ultra;
+  }
 
   .strip {
     @apply flex gap-5 overflow-x-auto;

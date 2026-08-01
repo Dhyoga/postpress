@@ -50,7 +50,7 @@ export const MOCK_POSTS: Post[] = [
     time: "19:00",
     type: "carousel",
     topic: "5 kesalahan freelancer pemula",
-    status: "review",
+    status: "needs_review",
     template: "cover_list",
     slideKinds: ["cover", "point", "point", "point", "point", "point", "cta"],
     caption:

@@ -15,7 +15,7 @@ import { QueueDetailModal } from "./QueueDetailModal";
 
 const FILTERS = [
   { value: "all", label: "Semua" },
-  { value: "review", label: "Menunggu review" },
+  { value: "needs_review", label: "Menunggu review" },
   { value: "approved", label: "Disetujui" },
   { value: "draft", label: "Draf" },
 ] as const;

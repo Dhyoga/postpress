@@ -7,28 +7,40 @@ export function LoginForm() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showError, setShowError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const usernameRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!username.trim() || !password) {
-      setShowError(true);
-      (username.trim() ? passwordRef.current : usernameRef.current)?.focus();
+      setError("Isi username dan password dulu.");
+      (username.trim() ? passwordRef : usernameRef).current?.focus();
       return;
     }
-    setShowError(false);
-    // TODO: ganti ke POST /api/auth/login (bcrypt + cookie sesi httpOnly, design.md §9)
-    // begitu backend auth dibangun. Untuk sekarang cukup redirect ke dashboard supaya
-    // seluruh alur UI bisa dilihat tanpa sesi sungguhan.
-    router.push("/dashboard");
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Gagal masuk");
+      router.replace("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal masuk");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <form className="auth__form" noValidate onSubmit={handleSubmit}>
       <h2>Masuk</h2>
-      <p className="auth__hint">Lanjutkan ke akun @kelasfreelance.id.</p>
+      <p className="auth__hint">Lanjutkan ke akun Postpress.</p>
 
       <div className="field">
         <label htmlFor="username">Username</label>
@@ -57,19 +69,16 @@ export function LoginForm() {
         />
       </div>
 
-      {showError ? (
-        <p className="alert" role="alert">
-          Isi username dan password dulu.
-        </p>
+      {error ? (
+        <p className="alert" role="alert">{error}</p>
       ) : null}
 
       <div className="auth__submit">
-        <button type="submit" className="btn btn--primary btn--block">
-          Masuk
+        <button type="submit" className="btn btn--primary btn--block" disabled={loading}>
+          {loading ? "Masuk..." : "Masuk"}
         </button>
       </div>
       <p className="auth__note">Akun dibuat oleh admin. Belum punya akses? Minta admin membuatkan.</p>
-      <p className="auth__demo">Prototipe &mdash; isi apa saja untuk melihat dashboard.</p>
     </form>
   );
 }

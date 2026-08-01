@@ -9,11 +9,12 @@ import { usePersona } from "../PersonaProvider";
 import { SegmentModal } from "../SegmentModal";
 
 export function SegmentasiPanel() {
-  const { segments, setSegments, loading } = usePersona();
+  const { segments, saveSegments, loading } = usePersona();
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const editing = editingId ? (segments.find((s) => s.id === editingId) ?? null) : null;
 
@@ -25,17 +26,29 @@ export function SegmentasiPanel() {
     setEditingId(id);
     setModalOpen(true);
   }
-  function handleDelete(id: string) {
-    setSegments((prev) => prev.filter((s) => s.id !== id));
-    toast("Segmen dihapus.");
+  async function handleDelete(id: string) {
+    setBusy(true);
+    try {
+      await saveSegments(segments.filter((s) => s.id !== id));
+      toast("Segmen dihapus.");
+    } catch {
+      toast("Gagal menghapus segmen. Coba lagi.");
+    } finally {
+      setBusy(false);
+    }
   }
-  function handleSave(data: Omit<Segment, "id">, id?: string) {
-    if (id) {
-      setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
-      toast("Segmen diperbarui.");
-    } else {
-      setSegments((prev) => [...prev, { ...data, id: `seg-${Date.now()}` }]);
-      toast("Segmen baru ditambahkan.");
+  async function handleSave(data: Omit<Segment, "id">, id?: string) {
+    setBusy(true);
+    try {
+      const next = id
+        ? segments.map((s) => (s.id === id ? { ...s, ...data } : s))
+        : [...segments, { ...data, id: `seg-${Date.now()}` }];
+      await saveSegments(next);
+      toast(id ? "Segmen diperbarui." : "Segmen baru ditambahkan.");
+    } catch {
+      toast("Gagal menyimpan segmen. Coba lagi.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -57,14 +70,13 @@ export function SegmentasiPanel() {
   }
 
   // Parse .xlsx murni di browser (SheetJS) sesuai agents.md aturan #6 — hasil parse
-  // wajib lewat jalur create yang sama dengan input manual, bukan endpoint bulk terpisah.
-  // TODO: ganti setSegments(...) di bawah dengan POST /api/personas/segments per baris
-  // (endpoint yang sama dipakai form manual) setelah backend siap.
+  // wajib lewat jalur create/update yang sama dengan input manual (saveSegments →
+  // POST /api/persona/segments), bukan endpoint bulk terpisah.
   function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = e.target?.result;
         if (!(data instanceof ArrayBuffer)) throw new Error("Buffer file tidak valid.");
@@ -79,12 +91,19 @@ export function SegmentasiPanel() {
             id: `seg-${Date.now()}-${i}`,
             name,
             tier: (String(row["Prioritas"] ?? "Sekunder").trim() || "Sekunder") as Segment["tier"],
-            desc: String(row["Deskripsi"] ?? ""),
+            description: String(row["Deskripsi"] ?? ""),
             painPoint: String(row["Pain Point"] ?? ""),
             need: String(row["Kebutuhan"] ?? ""),
           });
         });
-        if (newSegments.length) setSegments((prev) => [...prev, ...newSegments]);
+        if (newSegments.length) {
+          setBusy(true);
+          try {
+            await saveSegments([...segments, ...newSegments]);
+          } finally {
+            setBusy(false);
+          }
+        }
         toast(
           newSegments.length
             ? `${newSegments.length} segmen diimpor dari Excel.`
@@ -124,7 +143,7 @@ export function SegmentasiPanel() {
                   {s.name} <span className="badge">{s.tier}</span>
                 </div>
                 <div className="segment-card__meta">
-                  {s.desc}
+                  {s.description}
                   <br />
                   <b>Pain point:</b> {s.painPoint}
                   <br />
@@ -132,12 +151,13 @@ export function SegmentasiPanel() {
                 </div>
               </div>
               <div className="segment-card__actions">
-                <button type="button" className="btn btn--ghost btn--sm" onClick={() => openEdit(s.id)}>
+                <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={() => openEdit(s.id)}>
                   Ubah
                 </button>
                 <button
                   type="button"
                   className="btn btn--danger btn--sm"
+                  disabled={busy}
                   onClick={() => handleDelete(s.id)}
                 >
                   Hapus

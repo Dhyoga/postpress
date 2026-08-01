@@ -1,26 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
-import type { GayaJudul, IstilahAsing, Sapaan, VoicePair } from "@/lib/mock/persona";
+import type { GayaJudul, IstilahAsing, PersonaDna, Sapaan, VoicePair } from "@/lib/mock/persona";
 import { usePersona } from "../PersonaProvider";
 
 export function DnaPanel() {
-  const { persona, setPersona, loading } = usePersona();
+  const { persona, savePersona, loading } = usePersona();
   const toast = useToast();
-  const dna = persona.dna;
 
   const [pillarInput, setPillarInput] = useState("");
-  const [draft, setDraft] = useState({
-    values: dna.values,
-    sapaan: dna.sapaan,
-    istilahAsing: dna.istilahAsing,
-    formatTanggal: dna.formatTanggal,
-    formatAngka: dna.formatAngka,
-    gayaJudul: dna.gayaJudul,
-  });
+  const [draft, setDraft] = useState<PersonaDna>(persona.dna);
   const [savedTag, setSavedTag] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setDraft(persona.dna);
+  }, [persona.dna]);
 
   function addPillar() {
     const value = pillarInput.trim();
@@ -28,47 +25,38 @@ export function DnaPanel() {
       toast("Isi sifat suara dulu sebelum menambah.");
       return;
     }
-    setPersona((prev) =>
-      prev.dna.pillars.includes(value)
-        ? prev
-        : { ...prev, dna: { ...prev.dna, pillars: [...prev.dna.pillars, value] } },
-    );
+    setDraft((prev) => (prev.pillars.includes(value) ? prev : { ...prev, pillars: [...prev.pillars, value] }));
     setPillarInput("");
   }
   function removePillar(value: string) {
-    setPersona((prev) => ({
-      ...prev,
-      dna: { ...prev.dna, pillars: prev.dna.pillars.filter((p) => p !== value) },
-    }));
+    setDraft((prev) => ({ ...prev, pillars: prev.pillars.filter((p) => p !== value) }));
   }
   function addPair() {
-    setPersona((prev) => ({
-      ...prev,
-      dna: { ...prev.dna, pairs: [...prev.dna.pairs, { do: "", dont: "" }] },
-    }));
+    setDraft((prev) => ({ ...prev, pairs: [...prev.pairs, { do: "", dont: "" }] }));
   }
   function removePair(index: number) {
-    setPersona((prev) => ({
-      ...prev,
-      dna: { ...prev.dna, pairs: prev.dna.pairs.filter((_, i) => i !== index) },
-    }));
+    setDraft((prev) => ({ ...prev, pairs: prev.pairs.filter((_, i) => i !== index) }));
   }
   function updatePair(index: number, field: keyof VoicePair, value: string) {
-    setPersona((prev) => ({
+    setDraft((prev) => ({
       ...prev,
-      dna: {
-        ...prev.dna,
-        pairs: prev.dna.pairs.map((pair, i) => (i === index ? { ...pair, [field]: value } : pair)),
-      },
+      pairs: prev.pairs.map((pair, i) => (i === index ? { ...pair, [field]: value } : pair)),
     }));
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setPersona((prev) => ({ ...prev, dna: { ...prev.dna, ...draft } }));
-    setSavedTag("Tersimpan.");
-    toast("DNA disimpan.");
-    setTimeout(() => setSavedTag(""), 2500);
+    setSaving(true);
+    try {
+      await savePersona({ dna: draft });
+      setSavedTag("Tersimpan.");
+      toast("DNA disimpan.");
+      setTimeout(() => setSavedTag(""), 2500);
+    } catch {
+      toast("Gagal menyimpan DNA. Coba lagi.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
@@ -92,8 +80,8 @@ export function DnaPanel() {
       <div className="field">
         <label>Sifat suara</label>
         <div className="tag-list">
-          {dna.pillars.length ? (
-            dna.pillars.map((p) => (
+          {draft.pillars.length ? (
+            draft.pillars.map((p) => (
               <span className="chip-tag" key={p}>
                 {p}
                 <button type="button" onClick={() => removePillar(p)}>
@@ -128,8 +116,8 @@ export function DnaPanel() {
       <div className="field">
         <label>Contoh gaya bicara</label>
         <div>
-          {dna.pairs.length ? (
-            dna.pairs.map((pair, i) => (
+          {draft.pairs.length ? (
+            draft.pairs.map((pair, i) => (
               <div className="dnd-pair" key={i}>
                 <div>
                   <label className="dnd-pair__label dnd-pair__label--do">Begini gaya kita</label>
@@ -240,8 +228,8 @@ export function DnaPanel() {
       </div>
 
       <div className="settings-card__foot">
-        <button type="submit" className="btn btn--primary btn--sm">
-          Simpan
+        <button type="submit" className="btn btn--primary btn--sm" disabled={saving}>
+          {saving ? "Menyimpan..." : "Simpan"}
         </button>
         <span className="saved-tag">{savedTag}</span>
       </div>

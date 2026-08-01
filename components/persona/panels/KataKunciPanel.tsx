@@ -21,10 +21,17 @@ const KEYWORD_SHEETS: Record<string, KeywordCategory> = {
   "Bank CTA": "cta",
 };
 
+function flattenKeywords(keywords: Record<KeywordCategory, string[]>) {
+  return (Object.entries(keywords) as [KeywordCategory, string[]][]).flatMap(([category, values]) =>
+    values.map((value) => ({ category, value })),
+  );
+}
+
 export function KataKunciPanel() {
-  const { keywords, setKeywords, loading } = usePersona();
+  const { keywords, saveKeywords, loading } = usePersona();
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
   const [inputs, setInputs] = useState<Record<KeywordCategory, string>>({
     topik: "",
     hashtag: "",
@@ -32,19 +39,37 @@ export function KataKunciPanel() {
     cta: "",
   });
 
-  function addKeyword(cat: KeywordCategory) {
+  async function addKeyword(cat: KeywordCategory) {
     const value = inputs[cat].trim();
     if (!value) {
       toast(`Isi ${KEYWORD_LABELS[cat]} dulu sebelum menambah.`);
       return;
     }
-    setKeywords((prev) =>
-      prev[cat].includes(value) ? prev : { ...prev, [cat]: [...prev[cat], value] },
-    );
-    setInputs((prev) => ({ ...prev, [cat]: "" }));
+    if (keywords[cat].includes(value)) {
+      setInputs((prev) => ({ ...prev, [cat]: "" }));
+      return;
+    }
+    setBusy(true);
+    try {
+      const next = { ...keywords, [cat]: [...keywords[cat], value] };
+      await saveKeywords(flattenKeywords(next));
+      setInputs((prev) => ({ ...prev, [cat]: "" }));
+    } catch {
+      toast("Gagal menyimpan kata kunci. Coba lagi.");
+    } finally {
+      setBusy(false);
+    }
   }
-  function removeKeyword(cat: KeywordCategory, value: string) {
-    setKeywords((prev) => ({ ...prev, [cat]: prev[cat].filter((v) => v !== value) }));
+  async function removeKeyword(cat: KeywordCategory, value: string) {
+    setBusy(true);
+    try {
+      const next = { ...keywords, [cat]: keywords[cat].filter((v) => v !== value) };
+      await saveKeywords(flattenKeywords(next));
+    } catch {
+      toast("Gagal menghapus kata kunci. Coba lagi.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function downloadTemplate() {
@@ -58,13 +83,13 @@ export function KataKunciPanel() {
   }
 
   // Sesuai agents.md aturan #6: import Excel dan input manual berbagi jalur validasi
-  // yang sama. TODO: ganti setKeywords(...) dengan POST /api/personas/keywords per
-  // baris (endpoint yang sama dengan tombol "Tambah" manual) setelah backend siap.
+  // yang sama — hasil parse dikirim lewat saveKeywords(), fungsi yang sama dipakai
+  // tombol "Tambah" manual, ke POST /api/persona/keywords.
   function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = e.target?.result;
         if (!(data instanceof ArrayBuffer)) throw new Error("Buffer file tidak valid.");
@@ -85,15 +110,21 @@ export function KataKunciPanel() {
         });
 
         let totalAdded = 0;
-        setKeywords((prev) => {
-          const next = { ...prev };
-          (Object.keys(additions) as KeywordCategory[]).forEach((cat) => {
-            const toAdd = (additions[cat] ?? []).filter((v) => !next[cat].includes(v));
-            totalAdded += toAdd.length;
-            next[cat] = [...next[cat], ...toAdd];
-          });
-          return next;
+        const next = { ...keywords };
+        (Object.keys(additions) as KeywordCategory[]).forEach((cat) => {
+          const toAdd = (additions[cat] ?? []).filter((v) => !next[cat].includes(v));
+          totalAdded += toAdd.length;
+          next[cat] = [...next[cat], ...toAdd];
         });
+
+        if (totalAdded > 0) {
+          setBusy(true);
+          try {
+            await saveKeywords(flattenKeywords(next));
+          } finally {
+            setBusy(false);
+          }
+        }
 
         if (!sheetsFound) toast("Tidak ada sheet yang cocok. Pastikan nama sheet sesuai template.");
         else toast(`${totalAdded} kata kunci baru ditambahkan dari Excel.`);
@@ -131,7 +162,7 @@ export function KataKunciPanel() {
               keywords[key].map((v) => (
                 <span className="chip-tag" key={v}>
                   {v}
-                  <button type="button" onClick={() => removeKeyword(key, v)}>
+                  <button type="button" disabled={busy} onClick={() => removeKeyword(key, v)}>
                     &times;
                   </button>
                 </span>
@@ -154,7 +185,7 @@ export function KataKunciPanel() {
                 }
               }}
             />
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => addKeyword(key)}>
+            <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={() => addKeyword(key)}>
               Tambah
             </button>
           </div>

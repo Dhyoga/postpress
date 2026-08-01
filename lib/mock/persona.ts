@@ -60,7 +60,7 @@ export type Segment = {
   id: string;
   name: string;
   tier: SegmentTier;
-  desc: string;
+  description: string;
   painPoint: string;
   need: string;
 };
@@ -124,7 +124,7 @@ export const MOCK_SEGMENTS: Segment[] = [
     id: "seg1",
     name: "Freelancer pemula 0-2 tahun",
     tier: "Utama",
-    desc: "Baru lepas dari kerja kantoran atau baru lulus, belum punya portofolio kuat.",
+    description: "Baru lepas dari kerja kantoran atau baru lulus, belum punya portofolio kuat.",
     painPoint: "Takut menetapkan harga, sering kerja di bawah tarif layak.",
     need: "Contoh angka konkret dan bahasa yang tidak menggurui.",
   },
@@ -132,7 +132,7 @@ export const MOCK_SEGMENTS: Segment[] = [
     id: "seg2",
     name: "Freelancer 2-5 tahun, mau naik kelas",
     tier: "Sekunder",
-    desc: "Sudah punya klien tetap, ingin menaikkan tarif atau pindah ke klien lebih besar.",
+    description: "Sudah punya klien tetap, ingin menaikkan tarif atau pindah ke klien lebih besar.",
     painPoint: "Bingung kapan waktu yang tepat menaikkan harga.",
     need: "Kerangka berpikir, bukan motivasi.",
   },

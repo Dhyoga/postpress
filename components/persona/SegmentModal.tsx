@@ -29,7 +29,7 @@ export function SegmentModal({
     if (!open) return;
     setName(editing?.name ?? "");
     setTier(editing?.tier ?? "Sekunder");
-    setDesc(editing?.desc ?? "");
+    setDesc(editing?.description ?? "");
     setPainPoint(editing?.painPoint ?? "");
     setNeed(editing?.need ?? "");
     setErrors({});
@@ -47,7 +47,7 @@ export function SegmentModal({
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
     onSave(
-      { name: name.trim(), tier, desc: desc.trim(), painPoint: painPoint.trim(), need: need.trim() },
+      { name: name.trim(), tier, description: desc.trim(), painPoint: painPoint.trim(), need: need.trim() },
       editing?.id,
     );
     onClose();

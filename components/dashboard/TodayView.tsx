@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { usePosts } from "@/components/posts/PostsProvider";
 import { NewPostModal } from "@/components/posts/NewPostModal";
@@ -10,39 +8,53 @@ import { useToast } from "@/components/ui/Toast";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { SlideCard } from "@/components/slides/SlideCard";
-import { useMockQuery } from "@/lib/hooks/use-mock-query";
-import { TODAY_PROOF_SLIDES } from "@/lib/mock/proof-sheet";
-import { DASHBOARD_STATS } from "@/lib/mock/dashboard-stats";
+import { useApi } from "@/lib/hooks/use-api";
 import { formatDateId } from "@/lib/format";
-import { QUEUE_STATUSES } from "@/lib/status";
+import type { PostStatus } from "@/lib/mock/types";
+import type { ProofSlideContent } from "@/lib/mock/proof-sheet";
 
-const FEATURED_POST_ID = "post1";
+type Post = {
+  id: string;
+  topic: string;
+  status: PostStatus;
+  template: string;
+  date?: string | null;
+  time?: string | null;
+  caption?: string | null;
+  tags?: string | null;
+  type?: string;
+};
+
+type DashboardStats = {
+  label: string;
+  value: string;
+  meta: string;
+  valueSuffix?: string;
+};
 
 export function TodayView() {
-  const { posts, loading: postsLoading, updateStatus } = usePosts();
-  const { data: stats, loading: statsLoading } = useMockQuery(DASHBOARD_STATS);
-  const { data: proofSlides, loading: slidesLoading } = useMockQuery(TODAY_PROOF_SLIDES);
+  const { loading: postsLoading, updateStatus } = usePosts();
+  const { data: statsRes, loading: statsLoading } = useApi<{ stats: DashboardStats[] }>("/api/dashboard/stats");
+  const { data: proofRes, loading: slidesLoading } = useApi<{ post: Post | null; slides: ProofSlideContent[] }>("/api/dashboard/proof-sheet");
   const toast = useToast();
-  const router = useRouter();
   const [postModalOpen, setPostModalOpen] = useState(false);
 
   useRegisterTopbarAction("Buat post baru", () => setPostModalOpen(true));
 
   const loading = postsLoading || statsLoading || slidesLoading;
-  const featured = posts.find((p) => p.id === FEATURED_POST_ID);
-  const upcoming = posts
-    .filter((p) => QUEUE_STATUSES.includes(p.status) && p.id !== FEATURED_POST_ID)
-    .slice(0, 3);
+  const stats = statsRes?.stats ?? [];
+  const proofSlides = proofRes?.slides ?? [];
+  const featured = proofRes?.post ?? null;
 
   function handleApprove() {
     if (!featured) return;
-    updateStatus(FEATURED_POST_ID, "approved");
-    toast(`Disetujui, dijadwalkan tayang ${formatDateId(featured.date, featured.time)}.`);
+    updateStatus(featured.id, "approved");
+    toast(`Disetujui.`);
   }
   function handleReject() {
     if (!featured) return;
-    updateStatus(FEATURED_POST_ID, "draft");
-    toast("Draf ditolak, dikembalikan ke status draf.");
+    updateStatus(featured.id, "needs_review");
+    toast("Draf ditolak, dikembalikan ke status review.");
   }
   function handleRegenerate() {
     toast("Membuat ulang draf... (disimulasikan, tidak memanggil LLM sungguhan)");
@@ -96,19 +108,14 @@ export function TodayView() {
           <section className="proof">
             <div className="proof__head">
               <div>
-                <div className="proof__label eyebrow">Proof sheet &middot; Sabtu 1 Agustus</div>
+                <div className="proof__label eyebrow">Proof sheet</div>
                 <h1 className="proof__title">{featured.topic}</h1>
               </div>
               <div className="proof__spacer" />
               <StatusChip status={featured.status} />
             </div>
 
-            <div
-              className="strip"
-              tabIndex={0}
-              role="group"
-              aria-label="Pratinjau slide, geser untuk melihat semua"
-            >
+            <div className="strip" tabIndex={0} role="group" aria-label="Pratinjau slide">
               {proofSlides.map((slide, i) => (
                 <SlideCard key={i} content={slide} index={i + 1} total={proofSlides.length} />
               ))}
@@ -116,8 +123,8 @@ export function TodayView() {
 
             <div className="proof__body">
               <div>
-                <p className="caption">{featured.caption}</p>
-                <p className="caption__tags">{featured.tags}</p>
+                <p className="caption">{featured.caption ?? ""}</p>
+                <p className="caption__tags">{featured.tags ?? ""}</p>
               </div>
               <div className="proof__side">
                 <p className="proof__spec">
@@ -127,7 +134,7 @@ export function TodayView() {
                   <br />
                   Slide &nbsp;&nbsp;&nbsp;&nbsp; <b>{proofSlides.length}</b>
                   <br />
-                  Tayang &nbsp;&nbsp;&nbsp; <b>{formatDateId(featured.date, featured.time)} WIB</b>
+                  Tayang &nbsp;&nbsp;&nbsp; <b>{featured.date ? formatDateId(featured.date, featured.time ?? "") : "-"}</b>
                 </p>
                 <button type="button" className="btn btn--primary" onClick={handleApprove}>
                   Setujui &amp; jadwalkan
@@ -148,70 +155,11 @@ export function TodayView() {
               Cron generate:daily belum jalan atau belum ada tema di rencana konten untuk
               tanggal ini. Buat post manual kalau mau langsung mulai.
             </p>
-            <button
-              type="button"
-              className="btn btn--primary btn--sm"
-              onClick={() => setPostModalOpen(true)}
-            >
+            <button type="button" className="btn btn--primary btn--sm" onClick={() => setPostModalOpen(true)}>
               Buat post baru
             </button>
           </div>
         )}
-
-        <section>
-          <div className="panel-head" style={{ marginBottom: 14 }}>
-            <h1 style={{ fontSize: 19 }}>Berikutnya di antrean</h1>
-            <Link href="/dashboard/queue" className="btn btn--quiet btn--sm">
-              Lihat semua &rarr;
-            </Link>
-          </div>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Jadwal</th>
-                  <th className="hide-sm">Jenis</th>
-                  <th>Topik</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {upcoming.length ? (
-                  upcoming.map((p) => (
-                    <tr
-                      key={p.id}
-                      className="is-clickable"
-                      onClick={() => router.push(`/dashboard/queue?open=${p.id}`)}
-                    >
-                      <td className="t-when">{formatDateId(p.date, p.time)}</td>
-                      <td className="hide-sm t-type">{p.type}</td>
-                      <td className="t-topic">{p.topic}</td>
-                      <td>
-                        <StatusChip status={p.status} />
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4}>
-                      <div className="empty">
-                        <strong>Antrean kosong</strong>
-                        <p>Tidak ada draf lain yang menunggu. Tambahkan post baru kapan saja.</p>
-                        <button
-                          type="button"
-                          className="btn btn--primary btn--sm"
-                          onClick={() => setPostModalOpen(true)}
-                        >
-                          Buat post baru
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </section>
 
       <NewPostModal open={postModalOpen} onClose={() => setPostModalOpen(false)} />
